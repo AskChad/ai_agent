@@ -261,7 +261,7 @@ export async function loadContextWithSemanticSearch(
  */
 export function formatMessagesForAI(
   messages: Message[]
-): Array<{ role: 'user' | 'assistant' | 'system'; content: string }> {
+): Array<{ role: 'user' | 'assistant' | 'system' | 'function'; content: string }> {
   return messages.map((msg) => ({
     role: msg.role,
     content: msg.content,
