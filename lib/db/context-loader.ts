@@ -331,13 +331,19 @@ export function createSystemMessage(
   return {
     id: 'system-' + Date.now(),
     conversation_id: '',
+    account_id: '',
     role: 'system',
     content,
+    message_type: 'chat',
     precedes_user_reply: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ghl_message_id: null,
     metadata: null,
     embedding: null,
+    function_call: null,
+    function_call_result: null,
+    tokens_used: null,
+    model_used: null,
   }
 }
