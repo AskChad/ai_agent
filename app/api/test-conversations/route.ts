@@ -82,7 +82,7 @@ export async function GET() {
       status: '✅ Created',
       conversation_id: conversation1.id,
       contact_name: conversation1.contact_name,
-      is_archived: conversation1.is_archived,
+      is_active: conversation1.is_active,
       message_count: conversation1.message_count,
     }
 
@@ -414,8 +414,8 @@ export async function GET() {
 
     results.test16_archive_unarchive = {
       status: '✅ Tested',
-      archived_successfully: archived.is_archived === true,
-      unarchived_successfully: unarchived.is_archived === false,
+      archived_successfully: archived.is_active === false,
+      unarchived_successfully: unarchived.is_active === true,
     }
 
     // ========================================================================

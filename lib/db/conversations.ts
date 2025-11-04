@@ -63,7 +63,7 @@ export async function getConversationByContactId(
       .select('*')
       .eq('account_id', accountId)
       .eq('ghl_contact_id', ghlContactId)
-      .eq('is_archived', false)
+      .eq('is_active', true)
       .maybeSingle()
 
     if (error) {
@@ -100,7 +100,7 @@ export async function getConversationByContactId(
 export async function listConversations(
   accountId: string,
   options?: {
-    isArchived?: boolean
+    isActive?: boolean
     limit?: number
     offset?: number
     sortBy?: 'created_at' | 'updated_at' | 'last_message_at'
@@ -109,7 +109,7 @@ export async function listConversations(
 ): Promise<{ conversations: Conversation[]; total: number }> {
   try {
     const {
-      isArchived,
+      isActive,
       limit = 50,
       offset = 0,
       sortBy = 'last_message_at',
@@ -118,7 +118,7 @@ export async function listConversations(
 
     logger.debug('Listing conversations', {
       accountId,
-      isArchived,
+      isActive,
       limit,
       offset,
       sortBy,
@@ -131,8 +131,8 @@ export async function listConversations(
       .select('*', { count: 'exact' })
       .eq('account_id', accountId)
 
-    if (isArchived !== undefined) {
-      query = query.eq('is_archived', isArchived)
+    if (isActive !== undefined) {
+      query = query.eq('is_active', isActive)
     }
 
     query = query.order(sortBy, { ascending: sortOrder === 'asc' })
@@ -200,7 +200,7 @@ export async function createConversation(input: {
         contact_email: input.contact_email || null,
         contact_phone: input.contact_phone || null,
         metadata: input.metadata || null,
-        is_archived: false,
+        is_active: true,
         message_count: 0,
       })
       .select()
@@ -268,7 +268,7 @@ export async function updateConversation(
 }
 
 /**
- * Archive conversation
+ * Archive conversation (sets is_active to false)
  */
 export async function archiveConversation(
   conversationId: string
@@ -281,7 +281,7 @@ export async function archiveConversation(
     const { data, error } = await supabase
       .from('conversations')
       .update({
-        is_archived: true,
+        is_active: false,
         updated_at: new Date().toISOString(),
       })
       .eq('id', conversationId)
@@ -305,7 +305,7 @@ export async function archiveConversation(
 }
 
 /**
- * Unarchive conversation
+ * Unarchive conversation (sets is_active to true)
  */
 export async function unarchiveConversation(
   conversationId: string
@@ -318,7 +318,7 @@ export async function unarchiveConversation(
     const { data, error } = await supabase
       .from('conversations')
       .update({
-        is_archived: false,
+        is_active: true,
         updated_at: new Date().toISOString(),
       })
       .eq('id', conversationId)
