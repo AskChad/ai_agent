@@ -71,7 +71,9 @@ export async function createMessage(input: {
         conversationId: input.conversation_id,
       })
     } catch (error) {
-      logger.warn('Failed to generate embedding, continuing without it', error)
+      logger.warn('Failed to generate embedding, continuing without it', {
+        error: error instanceof Error ? error.message : String(error),
+      })
       // Continue without embedding - not critical for message creation
     }
 
@@ -331,7 +333,9 @@ export async function updateMessage(
         embedding = await createEmbedding(updates.content)
         logger.debug('New embedding generated for updated content')
       } catch (error) {
-        logger.warn('Failed to generate new embedding', error)
+        logger.warn('Failed to generate new embedding', {
+          error: error instanceof Error ? error.message : String(error),
+        })
       }
     }
 
