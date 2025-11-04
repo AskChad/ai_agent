@@ -33,7 +33,7 @@ export async function GET() {
     logger.info('Running account operations tests...')
 
     const testId = Date.now()
-    const results: any = {}
+    const results: Record<string, any> = {}
 
     // ========================================================================
     // TEST 1: Create account with settings
