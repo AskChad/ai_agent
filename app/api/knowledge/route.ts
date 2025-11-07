@@ -2,13 +2,11 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const createFunctionSchema = z.object({
-  name: z.string().min(1, 'Function name is required'),
-  description: z.string().min(1, 'Description is required'),
-  handler_type: z.enum(['internal', 'webhook', 'api_call', 'database_query']),
-  parameters_schema: z.record(z.any()),
-  handler_config: z.record(z.any()),
-  is_active: z.boolean().default(true),
+const createKnowledgeSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  content: z.string().min(1, 'Content is required'),
+  document_type: z.enum(['text', 'pdf', 'doc', 'url', 'other']).default('text'),
+  metadata: z.record(z.any()).optional(),
   agent_id: z.string().uuid().optional(),
 });
 
@@ -27,8 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
-    const handler_type = searchParams.get('handler_type');
-    const is_active = searchParams.get('is_active');
+    const document_type = searchParams.get('document_type');
     const search = searchParams.get('search');
     const agent_id = searchParams.get('agent_id');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -36,18 +33,14 @@ export async function GET(request: NextRequest) {
 
     // Build query
     let query = supabase
-      .from('ai_functions')
-      .select('*, function_call_logs(count)', { count: 'exact' })
+      .from('knowledge_base')
+      .select('*', { count: 'exact' })
       .eq('account_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (handler_type) {
-      query = query.eq('handler_type', handler_type);
-    }
-
-    if (is_active !== null) {
-      query = query.eq('is_active', is_active === 'true');
+    if (document_type) {
+      query = query.eq('document_type', document_type);
     }
 
     if (agent_id) {
@@ -55,26 +48,26 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     }
 
-    const { data: functions, error, count } = await query;
+    const { data: documents, error, count } = await query;
 
     if (error) {
-      console.error('Functions fetch error:', error);
-      return NextResponse.json({ error: 'Failed to fetch functions' }, { status: 500 });
+      console.error('Knowledge base fetch error:', error);
+      return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      functions,
+      documents,
       total: count,
       limit,
       offset,
     });
 
   } catch (error) {
-    console.error('Get functions error:', error);
+    console.error('Get knowledge base error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -92,7 +85,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate input
-    const validation = createFunctionSchema.safeParse(body);
+    const validation = createKnowledgeSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: validation.error.errors },
@@ -100,30 +93,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const functionData = validation.data;
+    const documentData = validation.data;
 
-    // Create function
-    const { data: aiFunction, error } = await supabase
-      .from('ai_functions')
+    // Create knowledge base entry
+    const { data: document, error } = await supabase
+      .from('knowledge_base')
       .insert({
         account_id: user.id,
-        ...functionData,
+        ...documentData,
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Function creation error:', error);
-      return NextResponse.json({ error: 'Failed to create function' }, { status: 500 });
+      console.error('Knowledge base creation error:', error);
+      return NextResponse.json({ error: 'Failed to create document' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      function: aiFunction,
+      document,
     });
 
   } catch (error) {
-    console.error('Create function error:', error);
+    console.error('Create knowledge base error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
