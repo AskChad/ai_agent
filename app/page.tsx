@@ -13,7 +13,7 @@ export default function Home() {
             <nav className="flex items-center gap-4">
               <Link
                 href="/auth/login"
-                className="text-gray-800 hover:text-gray-900 font-medium"
+                className="text-gray-900 hover:text-gray-900 font-medium"
               >
                 Login
               </Link>
@@ -33,9 +33,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-5xl font-bold text-gray-900 mb-6">
             Intelligent AI Chat Agent for
-            <span className="text-blue-800"> GoHighLevel</span>
+            <span className="text-blue-900"> GoHighLevel</span>
           </h2>
-          <p className="text-xl text-gray-800 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-900 mb-8 max-w-3xl mx-auto">
             Automate conversations across SMS, Email, WhatsApp, Facebook, Instagram, and Google Business.
             Powered by OpenAI and Anthropic AI with smart function calling.
           </p>
@@ -48,7 +48,7 @@ export default function Home() {
             </Link>
             <Link
               href="/dashboard"
-              className="px-8 py-4 bg-white text-gray-800 rounded-lg hover:bg-gray-50 font-semibold text-lg transition-colors border-2 border-gray-200"
+              className="px-8 py-4 bg-white text-gray-900 rounded-lg hover:bg-gray-50 font-semibold text-lg transition-colors border-2 border-gray-200"
             >
               View Dashboard
             </Link>
@@ -71,7 +71,7 @@ export default function Home() {
               <h4 className="text-xl font-semibold text-gray-900 mb-2">
                 Multi-Channel Messaging
               </h4>
-              <p className="text-gray-800">
+              <p className="text-gray-900">
                 Send and receive messages across SMS, Email, WhatsApp, Facebook, Instagram, and Google Business.
               </p>
             </div>
@@ -84,7 +84,7 @@ export default function Home() {
               <h4 className="text-xl font-semibold text-gray-900 mb-2">
                 Advanced AI Models
               </h4>
-              <p className="text-gray-800">
+              <p className="text-gray-900">
                 Powered by GPT-4 and Claude 3.5 with intelligent context management and natural conversations.
               </p>
             </div>
@@ -97,7 +97,7 @@ export default function Home() {
               <h4 className="text-xl font-semibold text-gray-900 mb-2">
                 Function Calling
               </h4>
-              <p className="text-gray-800">
+              <p className="text-gray-900">
                 AI can execute custom functions, call APIs, query databases, and trigger webhooks automatically.
               </p>
             </div>
@@ -110,7 +110,7 @@ export default function Home() {
               <h4 className="text-xl font-semibold text-gray-900 mb-2">
                 RAG Knowledge Base
               </h4>
-              <p className="text-gray-800">
+              <p className="text-gray-900">
                 Upload documents and let AI search and reference your knowledge base with semantic search.
               </p>
             </div>
@@ -123,7 +123,7 @@ export default function Home() {
               <h4 className="text-xl font-semibold text-gray-900 mb-2">
                 GoHighLevel Integration
               </h4>
-              <p className="text-gray-800">
+              <p className="text-gray-900">
                 Seamless OAuth integration with GHL marketplace for bi-directional message sync.
               </p>
             </div>
@@ -136,7 +136,7 @@ export default function Home() {
               <h4 className="text-xl font-semibold text-gray-900 mb-2">
                 Analytics & Insights
               </h4>
-              <p className="text-gray-800">
+              <p className="text-gray-900">
                 Track conversation metrics, function performance, and AI usage with detailed analytics.
               </p>
             </div>
@@ -190,7 +190,7 @@ export default function Home() {
           </p>
           <Link
             href="/auth/register"
-            className="inline-block px-8 py-4 bg-white text-blue-800 rounded-lg hover:bg-gray-100 font-semibold text-lg transition-colors shadow-lg hover:shadow-xl"
+            className="inline-block px-8 py-4 bg-white text-blue-900 rounded-lg hover:bg-gray-100 font-semibold text-lg transition-colors shadow-lg hover:shadow-xl"
           >
             Get Started Now
           </Link>
@@ -200,10 +200,10 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-gray-800 mb-4">
+          <p className="text-gray-900 mb-4">
             AI Chat Agent - Intelligent conversational AI for GoHighLevel
           </p>
-          <div className="flex justify-center gap-6 text-sm text-gray-800">
+          <div className="flex justify-center gap-6 text-sm text-gray-900">
             <Link href="/dashboard" className="hover:text-gray-300">Dashboard</Link>
             <Link href="/auth/login" className="hover:text-gray-300">Login</Link>
             <a href="https://github.com/AskChad/AI_Agent" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300">GitHub</a>

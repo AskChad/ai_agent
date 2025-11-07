@@ -95,7 +95,7 @@ export default function FunctionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Functions</h1>
-          <p className="text-gray-800 mt-1">Manage AI function calling capabilities</p>
+          <p className="text-gray-900 mt-1">Manage AI function calling capabilities</p>
         </div>
         <Link href="/dashboard/functions/create">
           <Button>
@@ -163,21 +163,21 @@ export default function FunctionsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-800">Total Functions</p>
+            <p className="text-sm text-gray-900">Total Functions</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{mockFunctions.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-800">Active</p>
-            <p className="text-2xl font-bold text-green-800 mt-1">
+            <p className="text-sm text-gray-900">Active</p>
+            <p className="text-2xl font-bold text-green-900 mt-1">
               {mockFunctions.filter(f => f.is_enabled).length}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-800">Total Calls</p>
+            <p className="text-sm text-gray-900">Total Calls</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">
               {mockFunctions.reduce((sum, f) => sum + f.call_count, 0)}
             </p>
@@ -185,8 +185,8 @@ export default function FunctionsPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-800">Avg Success Rate</p>
-            <p className="text-2xl font-bold text-green-800 mt-1">
+            <p className="text-sm text-gray-900">Avg Success Rate</p>
+            <p className="text-2xl font-bold text-green-900 mt-1">
               {Math.round(mockFunctions.reduce((sum, f) => sum + f.success_rate, 0) / mockFunctions.length)}%
             </p>
           </CardContent>
@@ -209,20 +209,20 @@ export default function FunctionsPage() {
                       {func.is_enabled ? 'Enabled' : 'Disabled'}
                     </Badge>
                   </div>
-                  <p className="text-gray-800 mb-4">{func.description}</p>
+                  <p className="text-gray-900 mb-4">{func.description}</p>
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-3 gap-6">
                     <div>
-                      <p className="text-xs text-gray-800 uppercase">Calls</p>
+                      <p className="text-xs text-gray-900 uppercase">Calls</p>
                       <p className="text-lg font-semibold text-gray-900">{func.call_count}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-800 uppercase">Success Rate</p>
+                      <p className="text-xs text-gray-900 uppercase">Success Rate</p>
                       <p className="text-lg font-semibold text-gray-900">{func.success_rate}%</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-800 uppercase">Avg Time</p>
+                      <p className="text-xs text-gray-900 uppercase">Avg Time</p>
                       <p className="text-lg font-semibold text-gray-900">{func.avg_execution_time}ms</p>
                     </div>
                   </div>
@@ -265,11 +265,11 @@ export default function FunctionsPage() {
       {filteredFunctions.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
-            <svg className="w-16 h-16 mx-auto text-gray-800 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-16 h-16 mx-auto text-gray-900 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No functions found</h3>
-            <p className="text-gray-800 mb-4">Try adjusting your search or filters</p>
+            <p className="text-gray-900 mb-4">Try adjusting your search or filters</p>
             <Link href="/dashboard/functions/create">
               <Button>Create your first function</Button>
             </Link>

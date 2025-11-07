@@ -36,7 +36,7 @@ export default function CreateFunctionPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Create Function</h1>
-          <p className="text-gray-800 mt-1">Define a new AI function for your agent</p>
+          <p className="text-gray-900 mt-1">Define a new AI function for your agent</p>
         </div>
         <Button variant="ghost" onClick={() => router.back()}>
           Cancel
@@ -157,11 +157,11 @@ export default function CreateFunctionPage() {
               />
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex">
-                  <svg className="w-5 h-5 text-yellow-800 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-yellow-900 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <div>
-                    <p className="text-sm font-medium text-yellow-800">Security Warning</p>
+                    <p className="text-sm font-medium text-yellow-900">Security Warning</p>
                     <p className="text-sm text-yellow-700 mt-1">
                       Database functions execute with elevated privileges. Ensure your query is safe and only accesses allowed tables.
                     </p>
@@ -188,7 +188,7 @@ export default function CreateFunctionPage() {
         </CardHeader>
         <CardContent>
           {parameters.length === 0 ? (
-            <div className="text-center py-8 text-gray-800">
+            <div className="text-center py-8 text-gray-900">
               <p>No parameters defined yet.</p>
               <p className="text-sm mt-1">Click &quot;Add Parameter&quot; to define function inputs.</p>
             </div>
@@ -240,9 +240,9 @@ export default function CreateFunctionPage() {
                       type="checkbox"
                       checked={param.required}
                       onChange={(e) => updateParameter(index, 'required', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-800 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-blue-900 focus:ring-blue-500"
                     />
-                    <span className="ml-2 text-sm text-gray-800">Required parameter</span>
+                    <span className="ml-2 text-sm text-gray-900">Required parameter</span>
                   </label>
                 </div>
               ))}

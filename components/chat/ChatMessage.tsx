@@ -24,7 +24,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   if (isSystem) {
     return (
       <div className="flex justify-center my-4">
-        <div className="bg-gray-100 text-gray-800 text-xs px-4 py-2 rounded-full">
+        <div className="bg-gray-100 text-gray-900 text-xs px-4 py-2 rounded-full">
           {message.content}
         </div>
       </div>
@@ -74,7 +74,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                   className="bg-white border border-gray-200 rounded-lg p-3 text-sm max-w-full"
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
                     <span className="font-mono text-gray-900">{call.name}</span>
@@ -89,7 +89,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                     </Badge>
                   </div>
                   {call.result && (
-                    <pre className="text-xs text-gray-800 mt-2 overflow-x-auto">
+                    <pre className="text-xs text-gray-900 mt-2 overflow-x-auto">
                       {JSON.stringify(call.result, null, 2)}
                     </pre>
                   )}
@@ -99,7 +99,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           )}
 
           {/* Timestamp */}
-          <span className={`text-xs text-gray-800 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
+          <span className={`text-xs text-gray-900 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
             {new Date(message.timestamp).toLocaleTimeString()}
           </span>
         </div>

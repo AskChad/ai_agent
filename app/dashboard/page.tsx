@@ -5,7 +5,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-800 mt-1">Welcome to your AI Chat Agent dashboard</p>
+        <p className="text-gray-900 mt-1">Welcome to your AI Chat Agent dashboard</p>
       </div>
 
       {/* Stats Grid */}
@@ -14,9 +14,9 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-800">Total Conversations</p>
+                <p className="text-sm font-medium text-gray-900">Total Conversations</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">1,234</p>
-                <p className="text-sm text-green-800 mt-1">+12% from last month</p>
+                <p className="text-sm text-green-900 mt-1">+12% from last month</p>
               </div>
               <div className="w-12 h-12 bg-blue-200 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,9 +31,9 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-800">Active Functions</p>
+                <p className="text-sm font-medium text-gray-900">Active Functions</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">28</p>
-                <p className="text-sm text-gray-800 mt-1">3 added this week</p>
+                <p className="text-sm text-gray-900 mt-1">3 added this week</p>
               </div>
               <div className="w-12 h-12 bg-purple-200 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,12 +48,12 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-800">Messages Today</p>
+                <p className="text-sm font-medium text-gray-900">Messages Today</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">567</p>
-                <p className="text-sm text-green-800 mt-1">+8% from yesterday</p>
+                <p className="text-sm text-green-900 mt-1">+8% from yesterday</p>
               </div>
               <div className="w-12 h-12 bg-green-200 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-green-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
               </div>
@@ -65,9 +65,9 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-800">Avg Response Time</p>
+                <p className="text-sm font-medium text-gray-900">Avg Response Time</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">1.2s</p>
-                <p className="text-sm text-green-800 mt-1">-0.3s improvement</p>
+                <p className="text-sm text-green-900 mt-1">-0.3s improvement</p>
               </div>
               <div className="w-12 h-12 bg-orange-200 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,11 +95,11 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">User {i}</p>
-                      <p className="text-sm text-gray-800">Last message 2h ago</p>
+                      <p className="text-sm text-gray-900">Last message 2h ago</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-200 text-green-800">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-200 text-green-900">
                       Active
                     </span>
                   </div>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                 <div key={i} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">{func.name}</span>
-                    <span className="text-sm text-gray-800">{func.calls} calls</span>
+                    <span className="text-sm text-gray-900">{func.calls} calls</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
@@ -134,8 +134,8 @@ export default function DashboardPage() {
                     ></div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-800">Success rate</span>
-                    <span className="text-xs font-medium text-green-800">{func.success}%</span>
+                    <span className="text-xs text-gray-900">Success rate</span>
+                    <span className="text-xs font-medium text-green-900">{func.success}%</span>
                   </div>
                 </div>
               ))}

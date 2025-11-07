@@ -38,7 +38,7 @@ export default function RegisterPage() {
             <span className="text-white font-bold text-2xl">AI</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-800 mt-2">Get started with AI Chat Agent</p>
+          <p className="text-gray-900 mt-2">Get started with AI Chat Agent</p>
         </div>
 
         {/* Register Card */}
@@ -90,16 +90,16 @@ export default function RegisterPage() {
               <div className="flex items-start">
                 <input
                   type="checkbox"
-                  className="mt-1 rounded border-gray-300 text-blue-800 focus:ring-blue-500"
+                  className="mt-1 rounded border-gray-300 text-blue-900 focus:ring-blue-500"
                   required
                 />
-                <label className="ml-2 text-sm text-gray-800">
+                <label className="ml-2 text-sm text-gray-900">
                   I agree to the{' '}
-                  <Link href="/terms" className="text-blue-800 hover:text-blue-700">
+                  <Link href="/terms" className="text-blue-900 hover:text-blue-700">
                     Terms of Service
                   </Link>{' '}
                   and{' '}
-                  <Link href="/privacy" className="text-blue-800 hover:text-blue-700">
+                  <Link href="/privacy" className="text-blue-900 hover:text-blue-700">
                     Privacy Policy
                   </Link>
                 </label>
@@ -120,7 +120,7 @@ export default function RegisterPage() {
                   <div className="w-full border-t border-gray-300"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-800">Or sign up with</span>
+                  <span className="px-2 bg-white text-gray-900">Or sign up with</span>
                 </div>
               </div>
 
@@ -140,16 +140,16 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <p className="text-center text-sm text-gray-800 mt-6">
+            <p className="text-center text-sm text-gray-900 mt-6">
               Already have an account?{' '}
-              <Link href="/auth/login" className="text-blue-800 hover:text-blue-700 font-medium">
+              <Link href="/auth/login" className="text-blue-900 hover:text-blue-700 font-medium">
                 Sign in
               </Link>
             </p>
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-gray-800 mt-6">
+        <p className="text-center text-sm text-gray-900 mt-6">
           © 2024 AI Chat Agent. All rights reserved.
         </p>
       </div>

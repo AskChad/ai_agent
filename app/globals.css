@@ -5,10 +5,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --text-primary: #111827;      /* gray-900 - Main headings and important text */
-  --text-secondary: #1f2937;    /* gray-800 - Body text and descriptions */
-  --text-tertiary: #374151;     /* gray-700 - Helper text and labels */
-  --text-muted: #6b7280;        /* gray-500 - Placeholders */
+  --text-primary: #000000;      /* Pure black - Main headings and important text */
+  --text-secondary: #111827;    /* gray-900 - Body text and descriptions */
+  --text-tertiary: #1f2937;     /* gray-800 - Helper text and labels */
+  --text-muted: #374151;        /* gray-700 - Placeholders (darker than before) */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -76,37 +76,41 @@ body {
     text-wrap: balance;
   }
 
-  /* Override Tailwind with higher specificity - force minimum darkness */
-  .text-gray-600 {
-    color: #374151 !important; /* gray-700 */
-  }
-
-  .text-gray-500 {
-    color: #374151 !important; /* gray-700 */
-  }
-
-  .text-gray-400 {
-    color: #374151 !important; /* gray-700 */
+  /* Override ALL light colors with darkest variants - FORCE maximum darkness */
+  .text-gray-600, .text-gray-500, .text-gray-400 {
+    color: #111827 !important; /* gray-900 - very dark */
   }
 
   .text-gray-700 {
-    color: #1f2937 !important; /* gray-800 - make it darker */
+    color: #111827 !important; /* gray-900 */
   }
 
-  /* Make all colored icons darker */
-  .text-blue-600 {
-    color: #1d4ed8 !important; /* blue-700 */
+  .text-gray-800 {
+    color: #000000 !important; /* pure black */
   }
 
-  .text-purple-600 {
-    color: #7c3aed !important; /* purple-700 */
+  /* Force all colored text to darkest variants */
+  .text-blue-600, .text-blue-700 {
+    color: #1e3a8a !important; /* blue-900 */
   }
 
-  .text-orange-600 {
-    color: #c2410c !important; /* orange-700 */
+  .text-purple-600, .text-purple-700 {
+    color: #581c87 !important; /* purple-900 */
   }
 
-  .text-green-600 {
-    color: #15803d !important; /* green-700 */
+  .text-orange-600, .text-orange-700 {
+    color: #7c2d12 !important; /* orange-900 */
+  }
+
+  .text-green-600, .text-green-700 {
+    color: #14532d !important; /* green-900 */
+  }
+
+  .text-red-600, .text-red-700 {
+    color: #7f1d1d !important; /* red-900 */
+  }
+
+  .text-yellow-600, .text-yellow-700 {
+    color: #713f12 !important; /* yellow-900 */
   }
 }
