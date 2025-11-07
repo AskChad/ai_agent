@@ -1,13 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Agent, CreateAgentRequest } from '@/types/agent';
 import { db } from '@/lib/db';
+import { createClient } from '@/lib/supabase/server';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 // GET /api/agents - List all agents for the authenticated account
 export async function GET(request: NextRequest) {
   try {
-    const accountId = request.headers.get('x-account-id');
+    // Try Supabase auth first (for browser requests)
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    let accountId: string | null = null;
+
+    if (user) {
+      // Authenticated via Supabase session
+      accountId = user.id;
+    } else {
+      // Fall back to x-account-id header (for server-side/direct API calls)
+      accountId = request.headers.get('x-account-id');
+    }
+
     if (!accountId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({
+        success: false,
+        error: 'Not authenticated'
+      }, { status: 401 });
     }
 
     const client = await db.getClient();
@@ -19,22 +39,44 @@ export async function GET(request: NextRequest) {
         [accountId]
       );
 
-      return NextResponse.json({ agents: result.rows });
+      return NextResponse.json({
+        success: true,
+        agents: result.rows
+      });
     } finally {
       client.release();
     }
   } catch (error: any) {
     console.error('Error fetching agents:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: error.message
+    }, { status: 500 });
   }
 }
 
 // POST /api/agents - Create a new agent
 export async function POST(request: NextRequest) {
   try {
-    const accountId = request.headers.get('x-account-id');
+    // Try Supabase auth first (for browser requests)
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    let accountId: string | null = null;
+
+    if (user) {
+      // Authenticated via Supabase session
+      accountId = user.id;
+    } else {
+      // Fall back to x-account-id header (for server-side/direct API calls)
+      accountId = request.headers.get('x-account-id');
+    }
+
     if (!accountId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({
+        success: false,
+        error: 'Not authenticated'
+      }, { status: 401 });
     }
 
     const body: CreateAgentRequest = await request.json();
@@ -86,7 +128,10 @@ export async function POST(request: NextRequest) {
         ]
       );
 
-      return NextResponse.json({ agent: result.rows[0] }, { status: 201 });
+      return NextResponse.json({
+        success: true,
+        agent: result.rows[0]
+      }, { status: 201 });
     } finally {
       client.release();
     }
@@ -96,10 +141,14 @@ export async function POST(request: NextRequest) {
     // Handle unique constraint violation
     if (error.code === '23505') {
       return NextResponse.json({
+        success: false,
         error: 'An agent with this name already exists'
       }, { status: 409 });
     }
 
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: error.message
+    }, { status: 500 });
   }
 }
