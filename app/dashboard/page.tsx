@@ -33,7 +33,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-800">Active Functions</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">28</p>
-                <p className="text-sm text-gray-700 mt-1">3 added this week</p>
+                <p className="text-sm text-gray-800 mt-1">3 added this week</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +95,7 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">User {i}</p>
-                      <p className="text-sm text-gray-700">Last message 2h ago</p>
+                      <p className="text-sm text-gray-800">Last message 2h ago</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -134,7 +134,7 @@ export default function DashboardPage() {
                     ></div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-700">Success rate</span>
+                    <span className="text-xs text-gray-800">Success rate</span>
                     <span className="text-xs font-medium text-green-600">{func.success}%</span>
                   </div>
                 </div>
