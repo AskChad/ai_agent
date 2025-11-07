@@ -5,19 +5,50 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --text-primary: #111827;      /* gray-900 - Main headings and important text */
+  --text-secondary: #1f2937;    /* gray-800 - Body text and descriptions */
+  --text-tertiary: #374151;     /* gray-700 - Helper text and labels */
+  --text-muted: #6b7280;        /* gray-500 - Placeholders */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --text-primary: #f9fafb;
+    --text-secondary: #f3f4f6;
+    --text-tertiary: #e5e7eb;
+    --text-muted: #9ca3af;
   }
 }
 
 body {
-  color: var(--foreground);
+  color: var(--text-secondary);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Centralized text color utilities */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+  }
+
+  p, span, div, li {
+    color: var(--text-secondary);
+  }
+
+  label {
+    color: var(--text-primary);
+  }
+
+  input, textarea, select {
+    color: #000000 !important; /* Pure black for form inputs */
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--text-muted) !important;
+  }
 }
 
 @layer utilities {
