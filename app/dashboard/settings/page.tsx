@@ -115,7 +115,7 @@ export default function SettingsPage() {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-lg font-semibold">Marketplace App Connection</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Marketplace App Connection</h3>
                   {ghlConnected ? (
                     <Badge variant="success">Connected</Badge>
                   ) : (
@@ -185,10 +185,10 @@ export default function SettingsPage() {
               <h4 className="font-medium text-sm text-gray-900 mb-2">Setup Instructions:</h4>
               <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
                 <li>Create a marketplace app at <a href="https://marketplace.gohighlevel.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">marketplace.gohighlevel.com</a></li>
-                <li>Configure OAuth with redirect URI: <code className="bg-white px-2 py-1 rounded text-xs">{process.env.NEXT_PUBLIC_APP_URL}/api/ghl/oauth/callback</code></li>
+                <li>Configure OAuth with redirect URI: <code className="bg-white px-2 py-1 rounded text-xs text-gray-900">{process.env.NEXT_PUBLIC_APP_URL}/api/ghl/oauth/callback</code></li>
                 <li>Add required scopes: conversations.readonly, conversations.write, conversations/message.readonly, conversations/message.write</li>
                 <li>Create a Conversation Provider in your marketplace app</li>
-                <li>Set the webhook delivery URL to: <code className="bg-white px-2 py-1 rounded text-xs">{process.env.NEXT_PUBLIC_APP_URL}/api/ghl/webhooks/outbound-message</code></li>
+                <li>Set the webhook delivery URL to: <code className="bg-white px-2 py-1 rounded text-xs text-gray-900">{process.env.NEXT_PUBLIC_APP_URL}/api/ghl/webhooks/outbound-message</code></li>
                 <li>Add your Client ID, Secret, and Provider ID to the .env.local file</li>
                 <li>Click &quot;Connect to GoHighLevel&quot; above to complete authorization</li>
               </ol>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Default AI Provider
               </label>
               <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -215,7 +215,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Context Window (messages)
               </label>
               <input
@@ -226,7 +226,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Enable Function Calling
               </label>
               <input
@@ -249,7 +249,7 @@ export default function SettingsPage() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Account Name
               </label>
               <input
@@ -260,7 +260,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Time Zone
               </label>
               <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent">
