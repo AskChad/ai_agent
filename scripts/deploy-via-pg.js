@@ -14,7 +14,7 @@ envContent.split('\n').forEach(line => {
 });
 
 // Force IPv4 by using connection string
-const connectionString = `postgresql://postgres:${encodeURIComponent(envVars.DB_PASSWORD || 'AiChatAgent2024!Secure#DB')}@db.mdccswzjwfyrzahbhduu.supabase.co:5432/postgres?sslmode=require`;
+const connectionString = `postgresql://postgres:${encodeURIComponent(envVars.DB_PASSWORD)}@db.mdccswzjwfyrzahbhduu.supabase.co:5432/postgres?sslmode=require`;
 
 const client = new Client({
   connectionString,

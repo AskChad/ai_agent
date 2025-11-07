@@ -17,7 +17,7 @@ envContent.split('\n').forEach(line => {
 });
 
 const DB_HOST = 'db.mdccswzjwfyrzahbhduu.supabase.co';
-const DB_PASSWORD = envVars.DB_PASSWORD || 'AiChatAgent2024!Secure#DB';
+const DB_PASSWORD = envVars.DB_PASSWORD;
 const SQL_FILE = path.join(__dirname, '../supabase/migrations/001_initial_schema.sql');
 
 async function deploySchema() {

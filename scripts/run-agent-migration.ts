@@ -3,11 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const pool = new Pool({
-  host: 'db.iccmkpmujtmvtfpvoxli.supabase.co',
-  user: 'postgres',
-  password: 'AiChatAgent2024!Secure#DB',
-  database: 'postgres',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
