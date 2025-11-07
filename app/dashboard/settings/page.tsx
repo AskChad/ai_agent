@@ -136,12 +136,12 @@ export default function SettingsPage() {
                 )}
 
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-gray-700">Supported Channels:</h4>
+                  <h4 className="font-medium text-sm text-gray-900">Supported Channels:</h4>
                   <div className="flex flex-wrap gap-2">
                     {['SMS', 'Email', 'WhatsApp', 'GMB', 'FB', 'Instagram'].map((channel) => (
                       <div
                         key={channel}
-                        className="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-sm"
+                        className="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-900 font-medium"
                       >
                         <span>{getChannelIcon(channel)}</span>
                         <span>{getChannelDisplayName(channel)}</span>
