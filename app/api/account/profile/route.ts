@@ -22,23 +22,36 @@ export async function GET(request: NextRequest) {
     // Fetch account details from database
     const client = await db.getClient();
     try {
-      const result = await client.query(
+      let result = await client.query(
         `SELECT id, account_name, ghl_location_id, is_active, created_at
          FROM accounts
          WHERE id = $1`,
         [user.id]
       );
 
+      // If account doesn't exist, create it
       if (result.rows.length === 0) {
-        return NextResponse.json({
-          success: false,
-          error: 'Account not found'
-        }, { status: 404 });
+        const accountName = user.email?.split('@')[0] || 'User';
+
+        await client.query(
+          `INSERT INTO accounts (id, account_name, is_active)
+           VALUES ($1, $2, true)
+           ON CONFLICT (id) DO NOTHING`,
+          [user.id, accountName]
+        );
+
+        // Fetch the newly created account
+        result = await client.query(
+          `SELECT id, account_name, ghl_location_id, is_active, created_at
+           FROM accounts
+           WHERE id = $1`,
+          [user.id]
+        );
       }
 
       return NextResponse.json({
         success: true,
-        account: result.rows[0],
+        account: result.rows[0] || null,
         user: {
           id: user.id,
           email: user.email
