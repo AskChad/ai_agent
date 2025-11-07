@@ -190,7 +190,7 @@ export default function SettingsPage() {
                 <li>Create a Conversation Provider in your marketplace app</li>
                 <li>Set the webhook delivery URL to: <code className="bg-white px-2 py-1 rounded text-xs">{process.env.NEXT_PUBLIC_APP_URL}/api/ghl/webhooks/outbound-message</code></li>
                 <li>Add your Client ID, Secret, and Provider ID to the .env.local file</li>
-                <li>Click "Connect to GoHighLevel" above to complete authorization</li>
+                <li>Click &quot;Connect to GoHighLevel&quot; above to complete authorization</li>
               </ol>
             </div>
           </div>

@@ -190,7 +190,7 @@ export default function CreateFunctionPage() {
           {parameters.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No parameters defined yet.</p>
-              <p className="text-sm mt-1">Click "Add Parameter" to define function inputs.</p>
+              <p className="text-sm mt-1">Click &quot;Add Parameter&quot; to define function inputs.</p>
             </div>
           ) : (
             <div className="space-y-4">

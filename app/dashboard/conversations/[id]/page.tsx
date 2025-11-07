@@ -1,7 +1,7 @@
 'use client';
 
 import { ChatInterface, Message } from '@/components/chat/ChatInterface';
-import { Card, Badge, Button } from '@/components/ui';
+import { Card, CardContent, Badge, Button } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 
 // Mock data for demo
