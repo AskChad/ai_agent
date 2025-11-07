@@ -28,89 +28,8 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Centralized text color utilities */
-@layer base {
-  h1, h2, h3, h4, h5, h6 {
-    color: var(--text-primary);
-  }
-
-  p, span, div, li {
-    color: var(--text-secondary);
-  }
-
-  label {
-    color: var(--text-primary);
-  }
-
-  input, textarea, select {
-    color: #000000 !important; /* Pure black for form inputs */
-  }
-
-  input::placeholder, textarea::placeholder {
-    color: var(--text-muted) !important;
-  }
-
-  /* Ensure SVG icons and symbols are visible */
-  svg {
-    color: inherit;
-  }
-
-  /* Force minimum text darkness - nothing lighter than gray-700 */
-  .text-gray-600, .text-gray-500, .text-gray-400 {
-    color: var(--text-tertiary) !important; /* gray-700 minimum */
-  }
-
-  /* Ensure button text is always dark */
-  button {
-    color: var(--text-secondary);
-  }
-
-  /* Make links clearly visible */
-  a {
-    color: var(--text-secondary);
-  }
-}
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;
-  }
-
-  /* Override ALL light colors with darkest variants - FORCE maximum darkness */
-  .text-gray-600, .text-gray-500, .text-gray-400 {
-    color: #111827 !important; /* gray-900 - very dark */
-  }
-
-  .text-gray-700 {
-    color: #111827 !important; /* gray-900 */
-  }
-
-  .text-gray-800 {
-    color: #000000 !important; /* pure black */
-  }
-
-  /* Force all colored text to darkest variants */
-  .text-blue-600, .text-blue-700 {
-    color: #1e3a8a !important; /* blue-900 */
-  }
-
-  .text-purple-600, .text-purple-700 {
-    color: #581c87 !important; /* purple-900 */
-  }
-
-  .text-orange-600, .text-orange-700 {
-    color: #7c2d12 !important; /* orange-900 */
-  }
-
-  .text-green-600, .text-green-700 {
-    color: #14532d !important; /* green-900 */
-  }
-
-  .text-red-600, .text-red-700 {
-    color: #7f1d1d !important; /* red-900 */
-  }
-
-  .text-yellow-600, .text-yellow-700 {
-    color: #713f12 !important; /* yellow-900 */
   }
 }
