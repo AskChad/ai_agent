@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
           conversationId: message.conversationId,
           raw: message,
         },
-      })
+      } as any)
       .select()
       .single();
 
