@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const contactInfo = extractContactInfo(message);
 
     // Find or create conversation
-    let conversation = await findOrCreateConversation(
+    let conversation: any = await findOrCreateConversation(
       supabase,
       account.id,
       message.contactId,
