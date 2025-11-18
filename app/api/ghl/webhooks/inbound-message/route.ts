@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       .update({
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('id', conversation.id);
 
     console.log('✅ Inbound message stored:', storedMessage.id);

@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
           contact_name: 'Unknown Contact',
           channel: message.type.toLowerCase(),
           is_active: true,
-        })
+        } as any)
         .select()
         .single();
 
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
       .update({
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('id', conversation.id);
 
     console.log(`✅ Outbound message stored: ${storedMessage.id} (${source})`);
@@ -273,7 +273,7 @@ async function storeOutboundMessage(
         conversationId: message.conversationId,
         raw: message,
       },
-    })
+    } as any)
     .select()
     .single();
 }
