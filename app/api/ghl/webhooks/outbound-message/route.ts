@@ -1,11 +1,17 @@
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 /**
  * GHL Outbound Message Webhook Handler
- * Receives messages when a user sends from GoHighLevel to a contact
- * Supports all channels: SMS, Email, WhatsApp, Facebook, Google, etc.
+ * Receives messages FROM GHL TO contacts (message sent out from GHL)
+ *
+ * This webhook fires when:
+ * 1. Our AI agent sends a message (via GHL API)
+ * 2. A GHL user sends a manual message
+ * 3. A GHL automation/workflow sends a message
+ *
+ * We parse the payload to determine the source and store appropriately
  */
 
 // Webhook payload schema
@@ -14,12 +20,13 @@ const outboundMessageSchema = z.object({
   contactId: z.string(),
   locationId: z.string(),
   messageId: z.string(),
-  userId: z.string().optional(),
+  userId: z.string().optional(),  // KEY: Present if sent by GHL user manually
   attachments: z.array(z.string()).optional(),
 
-  // SMS fields
+  // SMS/WhatsApp fields
   phone: z.string().optional(),
   message: z.string().optional(),
+  body: z.string().optional(),
 
   // Email fields
   emailTo: z.array(z.string()).optional(),
@@ -29,11 +36,9 @@ const outboundMessageSchema = z.object({
   }).optional(),
   subject: z.string().optional(),
   html: z.string().optional(),
-  emailMessageId: z.string().optional(),
 
-  // WhatsApp/Social fields
+  // Social media fields
   contentType: z.string().optional(),
-  body: z.string().optional(),
 
   // Conversation tracking
   conversationId: z.string().optional(),
@@ -44,10 +49,10 @@ type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const body = await request.json();
 
-    console.log('📨 Received GHL outbound webhook:', JSON.stringify(body, null, 2));
+    console.log('📤 Received GHL OUTBOUND webhook:', JSON.stringify(body, null, 2));
 
     // Validate webhook payload
     const validation = outboundMessageSchema.safeParse(body);
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
     // Find account by GHL location ID
     const { data: account, error: accountError } = await supabase
       .from('accounts')
-      .select('id')
+      .select('id, account_name')
       .eq('ghl_location_id', message.locationId)
       .single();
 
@@ -76,53 +81,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract message content based on type
+    // Extract message content
     const content = extractMessageContent(message);
-    const contactInfo = extractContactInfo(message);
 
-    // Find or create conversation
-    let conversation;
-
-    if (message.conversationId) {
-      // Try to find existing conversation by GHL conversation ID
-      const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('ghl_conversation_id', message.conversationId)
-        .eq('account_id', account.id)
-        .single();
-
-      conversation = existingConv;
-    }
+    // Find conversation (should already exist)
+    const { data: conversation } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('ghl_contact_id', message.contactId)
+      .eq('account_id', account.id)
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (!conversation) {
-      // Find by contact ID
-      const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('ghl_contact_id', message.contactId)
-        .eq('account_id', account.id)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      conversation = existingConv;
-    }
-
-    // Create new conversation if none found
-    if (!conversation) {
+      console.warn('No conversation found for outbound message, creating one');
+      // Create conversation if it doesn't exist
       const { data: newConv, error: convError } = await supabase
         .from('conversations')
         .insert({
           account_id: account.id,
           ghl_contact_id: message.contactId,
           ghl_conversation_id: message.conversationId,
-          contact_name: contactInfo.name || 'Unknown Contact',
-          contact_phone: contactInfo.phone,
-          contact_email: contactInfo.email,
-          status: 'active',
+          contact_name: 'Unknown Contact',
           channel: message.type.toLowerCase(),
+          is_active: true,
         })
         .select()
         .single();
@@ -135,28 +119,47 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      conversation = newConv;
+      // Use new conversation
+      const conversationId = newConv.id;
+
+      // Store message as unknown source initially
+      await storeOutboundMessage(
+        supabase,
+        conversationId,
+        account.id,
+        message,
+        content,
+        'system', // Default to system if no conversation context
+        'system'
+      );
+
+      return NextResponse.json({
+        success: true,
+        conversationId,
+        source: 'system',
+      });
     }
 
-    // Store the message from user (role: user because it's from the contact)
-    const { data: storedMessage, error: messageError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversation.id,
-        account_id: account.id,
-        role: 'user',
-        content,
-        ghl_message_id: message.messageId,
-        channel: message.type.toLowerCase(),
-        metadata: {
-          type: message.type,
-          userId: message.userId,
-          attachments: message.attachments || [],
-          raw: message,
-        },
-      })
-      .select()
-      .single();
+    // SMART SOURCE DETECTION
+    const { source, role } = await determineMessageSource(
+      supabase,
+      message,
+      account.id,
+      conversation.id
+    );
+
+    console.log(`📊 Classified outbound message as: ${source} (role: ${role})`);
+
+    // Store the outbound message with proper classification
+    const { data: storedMessage, error: messageError } = await storeOutboundMessage(
+      supabase,
+      conversation.id,
+      account.id,
+      message,
+      content,
+      source,
+      role
+    );
 
     if (messageError) {
       console.error('Failed to store message:', messageError);
@@ -169,18 +172,19 @@ export async function POST(request: NextRequest) {
     // Update conversation timestamp
     await supabase
       .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
+      .update({
+        last_message_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', conversation.id);
 
-    console.log('✅ Message stored:', storedMessage.id);
-
-    // TODO: Trigger AI response if auto-reply is enabled
-    // This will be implemented in the AI integration phase
+    console.log(`✅ Outbound message stored: ${storedMessage.id} (${source})`);
 
     return NextResponse.json({
       success: true,
       conversationId: conversation.id,
       messageId: storedMessage.id,
+      source: source,
     });
 
   } catch (error) {
@@ -190,6 +194,88 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * SMART SOURCE DETECTION
+ * Determine who sent this outbound message by analyzing the payload and database
+ */
+async function determineMessageSource(
+  supabase: any,
+  message: OutboundMessage,
+  accountId: string,
+  conversationId: string
+): Promise<{ source: 'ai_agent' | 'ghl_user' | 'ghl_automation', role: string }> {
+
+  // STEP 1: Check if this message already exists in our database
+  // If we already stored it with role='assistant', it means OUR AI sent it
+  const { data: existingMessage } = await supabase
+    .from('messages')
+    .select('id, role, source')
+    .eq('conversation_id', conversationId)
+    .eq('ghl_message_id', message.messageId)
+    .maybeSingle();
+
+  if (existingMessage && existingMessage.role === 'assistant') {
+    console.log('🤖 Message already in DB with role=assistant → AI Agent sent this');
+    return {
+      source: 'ai_agent',
+      role: 'assistant'
+    };
+  }
+
+  // STEP 2: Check if userId is present
+  // If userId exists, a GHL user sent this manually
+  if (message.userId) {
+    console.log(`👤 userId present (${message.userId}) → GHL User sent this manually`);
+    return {
+      source: 'ghl_user',
+      role: 'user'  // Human agent response
+    };
+  }
+
+  // STEP 3: No userId and not in our DB
+  // This means a GHL automation/workflow sent it
+  console.log('🔄 No userId, not in DB → GHL Automation sent this');
+  return {
+    source: 'ghl_automation',
+    role: 'system'  // Automated system message
+  };
+}
+
+/**
+ * Store outbound message with proper classification
+ */
+async function storeOutboundMessage(
+  supabase: any,
+  conversationId: string,
+  accountId: string,
+  message: OutboundMessage,
+  content: string,
+  source: 'ai_agent' | 'ghl_user' | 'ghl_automation' | 'system',
+  role: string
+) {
+  return await supabase
+    .from('messages')
+    .insert({
+      conversation_id: conversationId,
+      account_id: accountId,
+      role: role,
+      content: content,
+      direction: 'outbound',      // FROM GHL TO contact
+      source: source,             // Who sent it: ai_agent, ghl_user, or ghl_automation
+      ghl_message_id: message.messageId,
+      channel: message.type.toLowerCase(),
+      metadata: {
+        type: message.type,
+        userId: message.userId,
+        attachments: message.attachments || [],
+        conversationId: message.conversationId,
+        raw: message,
+      },
+    })
+    .select()
+    .single();
 }
 
 /**
@@ -212,27 +298,6 @@ function extractMessageContent(message: OutboundMessage): string {
     default:
       return message.message || message.body || message.html || '';
   }
-}
-
-/**
- * Extract contact information from message
- */
-function extractContactInfo(message: OutboundMessage): {
-  name?: string;
-  phone?: string;
-  email?: string;
-} {
-  const info: any = {};
-
-  if (message.phone) {
-    info.phone = message.phone;
-  }
-
-  if (message.emailTo && message.emailTo.length > 0) {
-    info.email = message.emailTo[0];
-  }
-
-  return info;
 }
 
 // Allow POST without authentication for webhooks
