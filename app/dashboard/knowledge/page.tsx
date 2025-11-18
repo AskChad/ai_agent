@@ -626,7 +626,7 @@ export default function KnowledgeBasePage() {
                   <select
                     value={formData.document_type}
                     onChange={(e) => setFormData({ ...formData, document_type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="text">Text</option>
                     <option value="pdf">PDF</option>
@@ -643,7 +643,7 @@ export default function KnowledgeBasePage() {
                   <select
                     value={formData.agent_id}
                     onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">All Agents</option>
                     {agents.map((agent) => (
@@ -726,7 +726,7 @@ export default function KnowledgeBasePage() {
                   <select
                     value={formData.document_type}
                     onChange={(e) => setFormData({ ...formData, document_type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="text">Text</option>
                     <option value="pdf">PDF</option>
@@ -743,7 +743,7 @@ export default function KnowledgeBasePage() {
                   <select
                     value={formData.agent_id}
                     onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">All Agents</option>
                     {agents.map((agent) => (
