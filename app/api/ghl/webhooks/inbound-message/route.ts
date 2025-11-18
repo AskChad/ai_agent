@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Find or create conversation
     let conversation: any = await findOrCreateConversation(
       supabase,
-      account.id,
+      account!.id,
       message.contactId,
       message.conversationId,
       contactInfo,
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       .from('messages')
       .insert({
         conversation_id: conversation.id,
-        account_id: account.id,
+        account_id: account!.id,
         role: 'user',
         content,
         direction: 'inbound',       // FROM contact TO GHL
