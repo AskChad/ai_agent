@@ -163,7 +163,7 @@ async function findOrCreateConversation(
   ghlConversationId: string | undefined,
   contactInfo: any,
   channel: string
-) {
+): Promise<any> {
   // Try to find by GHL conversation ID first
   if (ghlConversationId) {
     const { data: existingConv } = await supabase
