@@ -96,6 +96,22 @@ export default function SettingsPage() {
   const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
   const [useDefaultScopes, setUseDefaultScopes] = useState(true);
 
+  // OAuth App Configuration state
+  const [oauthConfig, setOauthConfig] = useState({
+    app_name: '',
+    app_description: '',
+    client_id: '',
+    client_secret: '',
+    redirect_uri: typeof window !== 'undefined'
+      ? `${window.location.origin}/api/ghl/oauth/callback`
+      : '',
+    scopes: 'conversations.readonly conversations.write conversations/message.readonly conversations/message.write contacts.readonly contacts.write locations.readonly',
+    agency_exchange: false,
+  });
+  const [oauthConfigExists, setOauthConfigExists] = useState(false);
+  const [savingOauthConfig, setSavingOauthConfig] = useState(false);
+  const [showClientSecret, setShowClientSecret] = useState(false);
+
   // Account settings state
   const [settings, setSettings] = useState<AccountSettings>({
     context_window_days: 30,
@@ -138,6 +154,7 @@ export default function SettingsPage() {
     loadAccountSettings();
     checkGHLStatus();
     loadAvailableScopes();
+    loadOAuthConfig();
   }, []);
 
   const loadAccountSettings = async () => {
@@ -242,6 +259,75 @@ export default function SettingsPage() {
       setMessage({ type: 'error', text: 'Failed to disconnect from GoHighLevel' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // OAuth App Configuration Management
+  const loadOAuthConfig = async () => {
+    try {
+      const response = await fetch('/api/ghl/oauth/config');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.config) {
+          setOauthConfig({
+            app_name: data.config.app_name || '',
+            app_description: data.config.app_description || '',
+            client_id: data.config.client_id || '',
+            client_secret: data.config.client_secret || '',
+            redirect_uri: data.config.redirect_uri || oauthConfig.redirect_uri,
+            scopes: data.config.scopes || oauthConfig.scopes,
+            agency_exchange: data.config.agency_exchange || false,
+          });
+          setOauthConfigExists(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load OAuth config:', error);
+    }
+  };
+
+  const saveOAuthConfig = async () => {
+    try {
+      setSavingOauthConfig(true);
+      setMessage(null);
+
+      // Validate configuration
+      if (!oauthConfig.client_id) {
+        setMessage({ type: 'error', text: 'Client ID is required' });
+        return;
+      }
+
+      if (!oauthConfig.client_secret) {
+        setMessage({ type: 'error', text: 'Client Secret is required' });
+        return;
+      }
+
+      if (!oauthConfig.redirect_uri) {
+        setMessage({ type: 'error', text: 'Redirect URI is required' });
+        return;
+      }
+
+      const response = await fetch('/api/ghl/oauth/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(oauthConfig),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({
+          type: 'success',
+          text: 'OAuth configuration saved successfully! You can now connect your GoHighLevel account.',
+        });
+        setOauthConfigExists(true);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to save OAuth configuration' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to save OAuth configuration' });
+    } finally {
+      setSavingOauthConfig(false);
     }
   };
 
@@ -475,6 +561,171 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 )}
+              </div>
+
+              {/* OAuth App Configuration */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="text-md font-semibold text-gray-900 mb-4">OAuth App Configuration</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Configure your GoHighLevel OAuth application credentials. These settings are required
+                  for the OAuth connection to work properly.
+                </p>
+
+                {oauthConfigExists && (
+                  <div className="mb-4 bg-green-50 p-3 rounded border border-green-200">
+                    <p className="text-sm text-green-800">
+                      OAuth configuration is already set up. You can update the credentials below if needed.
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {/* App Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      App Name <span className="text-gray-400">(Recommended)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={oauthConfig.app_name}
+                      onChange={(e) => setOauthConfig({ ...oauthConfig, app_name: e.target.value })}
+                      placeholder="E.g., 'AI Chat Agent Integration' or 'My GHL App'"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Give your OAuth app a friendly name to identify it easily.
+                    </p>
+                  </div>
+
+                  {/* App Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      App Description <span className="text-gray-400">(Optional)</span>
+                    </label>
+                    <textarea
+                      value={oauthConfig.app_description}
+                      onChange={(e) => setOauthConfig({ ...oauthConfig, app_description: e.target.value })}
+                      placeholder="E.g., 'Production app for AI-powered message responses'"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={2}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Optional description to remember what this app is used for.
+                    </p>
+                  </div>
+
+                  {/* Client ID */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Client ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={oauthConfig.client_id}
+                      onChange={(e) => setOauthConfig({ ...oauthConfig, client_id: e.target.value })}
+                      placeholder="Enter your GHL OAuth Client ID"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Client Secret */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Client Secret <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showClientSecret ? 'text' : 'password'}
+                        value={oauthConfig.client_secret}
+                        onChange={(e) => setOauthConfig({ ...oauthConfig, client_secret: e.target.value })}
+                        placeholder="Enter your GHL OAuth Client Secret"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowClientSecret(!showClientSecret)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-800"
+                      >
+                        {showClientSecret ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Redirect URI */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Redirect URI <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={oauthConfig.redirect_uri}
+                      onChange={(e) => setOauthConfig({ ...oauthConfig, redirect_uri: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-sm"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      This must match exactly with the redirect URI configured in your GHL OAuth app settings.
+                    </p>
+                  </div>
+
+                  {/* Scopes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Scopes
+                    </label>
+                    <textarea
+                      value={oauthConfig.scopes}
+                      onChange={(e) => setOauthConfig({ ...oauthConfig, scopes: e.target.value })}
+                      placeholder="contacts.readonly contacts.write locations.readonly..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Space-separated list of OAuth scopes (permissions) requested from GoHighLevel.
+                    </p>
+                  </div>
+
+                  {/* Agency Exchange Checkbox */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="agency-exchange"
+                        checked={oauthConfig.agency_exchange}
+                        onChange={(e) => setOauthConfig({ ...oauthConfig, agency_exchange: e.target.checked })}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <div className="flex-1">
+                        <label htmlFor="agency-exchange" className="text-sm font-semibold text-blue-900 cursor-pointer">
+                          Agency Exchange Integration
+                        </label>
+                        <p className="text-xs text-blue-800 mt-1">
+                          Enable this for Agency Exchange marketplace apps (Agency-level apps only). This allows automatic exchange of agency tokens for location-specific tokens.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div>
+                    <button
+                      onClick={saveOAuthConfig}
+                      disabled={savingOauthConfig || !oauthConfig.client_id || !oauthConfig.client_secret}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {savingOauthConfig ? 'Saving...' : (oauthConfigExists ? 'Update Configuration' : 'Save Configuration')}
+                    </button>
+                  </div>
+
+                  <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
+                    <p className="text-sm font-medium text-yellow-900 mb-2">Important:</p>
+                    <ul className="list-disc list-inside text-sm text-yellow-800 space-y-1">
+                      <li>These credentials are stored securely with encryption</li>
+                      <li>You must create an OAuth app in the GoHighLevel Marketplace first</li>
+                      <li>The redirect URI must match exactly in your GHL app settings</li>
+                      <li>After saving, you can use the &quot;Connect GoHighLevel Account&quot; button above</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
