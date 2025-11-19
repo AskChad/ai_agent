@@ -121,12 +121,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Update conversation timestamp
-    await supabase
+    await (supabase as any)
       .from('conversations')
       .update({
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      } as any)
+      })
       .eq('id', conversation.id);
 
     console.log('✅ Inbound message stored:', storedMessage.id);

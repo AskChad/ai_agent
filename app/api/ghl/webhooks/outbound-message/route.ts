@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     if (!conversation) {
       console.warn('No conversation found for outbound message, creating one');
       // Create conversation if it doesn't exist
-      const { data: newConv, error: convError } = await supabase
+      const { data: newConv, error: convError } = await (supabase as any)
         .from('conversations')
         .insert({
           account_id: account.id,
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
           contact_name: 'Unknown Contact',
           channel: message.type.toLowerCase(),
           is_active: true,
-        } as any)
+        })
         .select()
         .single();
 
@@ -170,12 +170,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Update conversation timestamp
-    await supabase
+    await (supabase as any)
       .from('conversations')
       .update({
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      } as any)
+      })
       .eq('id', conversation.id);
 
     console.log(`✅ Outbound message stored: ${storedMessage.id} (${source})`);
@@ -255,7 +255,7 @@ async function storeOutboundMessage(
   source: 'ai_agent' | 'ghl_user' | 'ghl_automation' | 'system',
   role: string
 ) {
-  return await supabase
+  return await (supabase as any)
     .from('messages')
     .insert({
       conversation_id: conversationId,
@@ -273,7 +273,7 @@ async function storeOutboundMessage(
         conversationId: message.conversationId,
         raw: message,
       },
-    } as any)
+    })
     .select()
     .single();
 }
