@@ -212,8 +212,8 @@ async function generateAIResponse(
       model: 'gpt-4-turbo-preview',
       messages: [
         { role: 'system', content: systemPrompt },
-        ...messages,
-      ],
+        ...messages.filter((m) => m.role !== 'function'), // OpenAI chat completion doesn't support function role
+      ] as any,
       temperature: 0.7,
       max_tokens: 500,
     })
