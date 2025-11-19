@@ -264,13 +264,6 @@ async function storeOutboundMessage(
       source: source,             // Who sent it: ai_agent, ghl_user, or ghl_automation
       ghl_message_id: message.messageId,
       channel: message.type.toLowerCase(),
-      metadata: {
-        type: message.type,
-        userId: message.userId,
-        attachments: message.attachments || [],
-        conversationId: message.conversationId,
-        raw: message,
-      },
     })
     .select()
     .single();

@@ -102,12 +102,6 @@ export async function POST(request: NextRequest) {
         source: 'contact',           // Source is the contact
         ghl_message_id: message.messageId,
         channel: message.type.toLowerCase(),
-        metadata: {
-          type: message.type,
-          attachments: message.attachments || [],
-          conversationId: message.conversationId,
-          raw: message,
-        },
       })
       .select()
       .single();
