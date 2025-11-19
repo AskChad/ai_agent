@@ -133,8 +133,12 @@ export interface Message {
   // Vector embedding (optional - may be stored in separate table)
   embedding: number[] | null
 
-  // Metadata
-  metadata: any | null
+  // Message tracking
+  channel: string | null
+  direction: 'inbound' | 'outbound' | null
+  source: 'contact' | 'ai_agent' | 'ghl_user' | 'ghl_automation' | 'system' | null
+
+  // AI metadata
   tokens_used: number | null
   model_used: string | null
   created_at: string
