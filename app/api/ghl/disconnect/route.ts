@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Get location ID before revoking
     const { data: tokens } = await supabase
       .from('ghl_oauth_tokens')
-      .select('ghl_location_id')
+      .select('location_id')
       .eq('account_id', user.id)
       .single();
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Revoke tokens
-    await revokeTokens(user.id, tokens.ghl_location_id);
+    await revokeTokens(user.id, tokens.location_id);
 
     // Clear GHL location ID from account
     await supabase

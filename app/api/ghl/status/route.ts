@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Check for OAuth tokens
     const { data: tokens, error: tokensError } = await supabase
       .from('ghl_oauth_tokens')
-      .select('ghl_location_id, expires_at, scope')
+      .select('location_id, expires_at, scope')
       .eq('account_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       connected: !isExpired,
-      locationId: tokens.ghl_location_id,
+      locationId: tokens.location_id,
       expiresAt: tokens.expires_at,
       scopes: tokens.scope?.split(' ') || [],
     });
