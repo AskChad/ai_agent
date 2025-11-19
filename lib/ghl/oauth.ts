@@ -1,9 +1,17 @@
 /**
  * GoHighLevel OAuth Helper Functions
  * Handles OAuth 2.0 authorization code flow for GHL Marketplace apps
+ *
+ * Attack Kit Compliance:
+ * - Tokens encrypted via Token Manager (never stored in plaintext)
+ * - State parameter for CSRF protection
+ * - Automatic token refresh with 5-minute buffer
+ * - Secure token revocation
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { encryptToken, decryptToken, deleteToken, validateTokenManagerConfig } from '@/lib/token-manager';
+import { logger } from '@/lib/logger';
 
 const GHL_AUTH_BASE_URL = 'https://marketplace.gohighlevel.com/oauth/chooselocation';
 const GHL_TOKEN_URL = 'https://services.leadconnectorhq.com/oauth/token';
@@ -151,44 +159,75 @@ export async function getLocationToken(
 
 /**
  * Store OAuth tokens in database
+ *
+ * ✅ CORRECT: Encrypts tokens using Token Manager before storing
+ * ❌ WRONG: Never store plaintext tokens in database
  */
 export async function storeTokens(
   accountId: string,
   locationId: string,
   tokens: GHLTokenResponse
 ): Promise<void> {
+  // Validate Token Manager is configured
+  validateTokenManagerConfig();
+
   const supabase = await createClient();
 
-  const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+  logger.info('Storing GHL OAuth tokens', { accountId, locationId });
 
-  const { error } = await supabase
-    .from('ghl_oauth_tokens')
-    .upsert({
-      account_id: accountId,
-      ghl_location_id: locationId,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      token_type: tokens.token_type,
-      scope: tokens.scope,
-      expires_at: expiresAt.toISOString(),
-      user_type: tokens.userType,
-    }, {
-      onConflict: 'account_id,ghl_location_id',
+  try {
+    // ✅ ENCRYPT tokens using Token Manager
+    const accessTokenRef = await encryptToken('ghl', accountId, tokens.access_token);
+    const refreshTokenRef = await encryptToken('ghl', accountId, tokens.refresh_token);
+
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+
+    // Store ENCRYPTED REFERENCES (not plaintext!)
+    const { error } = await (supabase as any)
+      .from('ghl_oauth_tokens')
+      .upsert({
+        account_id: accountId,
+        access_token_reference: accessTokenRef,  // ✅ Encrypted reference
+        refresh_token_reference: refreshTokenRef,  // ✅ Encrypted reference
+        token_type: tokens.token_type,
+        scope: tokens.scope,
+        expires_at: expiresAt.toISOString(),
+        location_id: locationId,
+        company_id: tokens.companyId || null,
+      }, {
+        onConflict: 'account_id',  // Changed from account_id,ghl_location_id
+      });
+
+    if (error) {
+      logger.error('Failed to store tokens in database', error);
+      throw new Error(`Failed to store tokens: ${error.message}`);
+    }
+
+    // Update account with GHL location ID
+    await (supabase as any)
+      .from('accounts')
+      .update({ ghl_location_id: locationId })
+      .eq('id', accountId);
+
+    logger.info('GHL OAuth tokens stored successfully', {
+      accountId,
+      locationId,
+      expiresAt: expiresAt.toISOString(),
     });
-
-  if (error) {
-    throw new Error(`Failed to store tokens: ${error.message}`);
+  } catch (error) {
+    logger.error('Failed to store GHL tokens', {
+      accountId,
+      locationId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-
-  // Update account with GHL location ID
-  await supabase
-    .from('accounts')
-    .update({ ghl_location_id: locationId })
-    .eq('id', accountId);
 }
 
 /**
  * Get valid access token for account, refreshing if necessary
+ *
+ * ✅ CORRECT: Decrypts token references from Token Manager
  */
 export async function getValidToken(
   accountId: string,
@@ -198,14 +237,16 @@ export async function getValidToken(
 ): Promise<string> {
   const supabase = await createClient();
 
-  const { data: tokenData, error } = await supabase
+  logger.debug('Getting valid GHL token', { accountId, locationId });
+
+  const { data: tokenData, error } = await (supabase as any)
     .from('ghl_oauth_tokens')
     .select('*')
     .eq('account_id', accountId)
-    .eq('ghl_location_id', locationId)
     .single();
 
   if (error || !tokenData) {
+    logger.error('No OAuth tokens found', { accountId, locationId, error });
     throw new Error('No OAuth tokens found. Please reconnect to GoHighLevel.');
   }
 
@@ -215,29 +256,52 @@ export async function getValidToken(
   const bufferMs = 5 * 60 * 1000; // 5 minutes
 
   if (expiresAt.getTime() - now.getTime() > bufferMs) {
-    // Token is still valid
-    return tokenData.access_token;
+    // Token is still valid, decrypt and return
+    logger.debug('Token still valid, decrypting', {
+      accountId,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    // ✅ DECRYPT token reference to get plaintext value
+    const accessToken = await decryptToken(tokenData.access_token_reference);
+    return accessToken;
   }
 
   // Token is expired or about to expire, refresh it
+  logger.info('Token expired or expiring soon, refreshing', {
+    accountId,
+    expiresAt: expiresAt.toISOString(),
+  });
+
   try {
+    // ✅ DECRYPT refresh token to use for refresh request
+    const refreshToken = await decryptToken(tokenData.refresh_token_reference);
+
     const newTokens = await refreshAccessToken(
-      tokenData.refresh_token,
+      refreshToken,
       clientId,
       clientSecret
     );
 
-    // Store new tokens
+    // Store new encrypted tokens
     await storeTokens(accountId, locationId, newTokens);
+
+    logger.info('Token refreshed successfully', { accountId });
 
     return newTokens.access_token;
   } catch (error) {
+    logger.error('Failed to refresh token', {
+      accountId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw new Error('Failed to refresh token. Please reconnect to GoHighLevel.');
   }
 }
 
 /**
  * Revoke OAuth tokens (disconnect)
+ *
+ * ✅ CORRECT: Deletes encrypted tokens from Token Manager AND database
  */
 export async function revokeTokens(
   accountId: string,
@@ -245,13 +309,40 @@ export async function revokeTokens(
 ): Promise<void> {
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from('ghl_oauth_tokens')
-    .delete()
-    .eq('account_id', accountId)
-    .eq('ghl_location_id', locationId);
+  logger.info('Revoking GHL OAuth tokens', { accountId, locationId });
 
-  if (error) {
-    throw new Error(`Failed to revoke tokens: ${error.message}`);
+  try {
+    // Get token references before deleting
+    const { data: tokenData } = await (supabase as any)
+      .from('ghl_oauth_tokens')
+      .select('access_token_reference, refresh_token_reference')
+      .eq('account_id', accountId)
+      .single();
+
+    // Delete token references from Token Manager
+    if (tokenData) {
+      await deleteToken(tokenData.access_token_reference);
+      await deleteToken(tokenData.refresh_token_reference);
+      logger.debug('Deleted encrypted tokens from Token Manager');
+    }
+
+    // Delete from database
+    const { error } = await (supabase as any)
+      .from('ghl_oauth_tokens')
+      .delete()
+      .eq('account_id', accountId);
+
+    if (error) {
+      logger.error('Failed to delete tokens from database', error);
+      throw new Error(`Failed to revoke tokens: ${error.message}`);
+    }
+
+    logger.info('GHL OAuth tokens revoked successfully', { accountId });
+  } catch (error) {
+    logger.error('Failed to revoke tokens', {
+      accountId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
 }

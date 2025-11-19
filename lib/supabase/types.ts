@@ -301,17 +301,26 @@ export interface WebhookEvent {
   received_at: string
 }
 
+/**
+ * GHL OAuth Token Storage
+ *
+ * ✅ CORRECT: Stores encrypted token REFERENCES (not plaintext!)
+ * Actual tokens are encrypted in Token Manager service
+ */
 export interface GHLOAuthToken {
   id: string
   account_id: string
 
-  access_token_reference: string
-  refresh_token_reference: string
+  // Encrypted token references (NOT plaintext!)
+  access_token_reference: string  // Reference ID from Token Manager
+  refresh_token_reference: string  // Reference ID from Token Manager
 
+  // Token metadata
   token_type: string
   scope: string | null
   expires_at: string
 
+  // GHL location info
   location_id: string
   company_id: string | null
 
