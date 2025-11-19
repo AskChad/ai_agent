@@ -1,0 +1,14 @@
+{
+  "deploymentProtection": {
+    "bypassFor": [
+      {
+        "type": "path",
+        "value": "/api/ghl/webhooks/inbound-message"
+      },
+      {
+        "type": "path",
+        "value": "/api/ghl/webhooks/outbound-message"
+      }
+    ]
+  }
+}
