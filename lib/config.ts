@@ -37,6 +37,7 @@ export const config = {
     clientId: process.env.GHL_CLIENT_ID || '',
     clientSecret: process.env.GHL_CLIENT_SECRET || '',
     redirectUri: process.env.GHL_REDIRECT_URI || '',
+    conversationProviderId: process.env.GHL_CONVERSATION_PROVIDER_ID || '',
     apiBaseUrl: 'https://services.leadconnectorhq.com',
     oauthBaseUrl: 'https://marketplace.gohighlevel.com',
   },
