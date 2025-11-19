@@ -339,11 +339,13 @@ export function createSystemMessage(
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ghl_message_id: null,
-    metadata: null,
     embedding: null,
     function_call: null,
     function_call_result: null,
     tokens_used: null,
     model_used: null,
+    channel: null,
+    direction: null,
+    source: null,
   }
 }

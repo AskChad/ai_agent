@@ -1,6 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { processInboundMessage } from '@/lib/ai/response-generator';
 
 /**
  * GHL Inbound Message Webhook Handler
@@ -125,14 +126,11 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Inbound message stored:', storedMessage.id);
 
-    // TODO: Trigger AI response generation
-    // This will:
-    // 1. Load conversation context
-    // 2. Generate AI response
-    // 3. Store AI message with direction='outbound', source='ai_agent'
-    // 4. Send via GHL API
-    //
-    // await processInboundMessage(conversation.id, storedMessage.id);
+    // Trigger AI response generation asynchronously
+    // Don't await - process in background to respond quickly to webhook
+    processInboundMessage(conversation.id, storedMessage.id).catch((error) => {
+      console.error('Background AI response generation failed:', error);
+    });
 
     return NextResponse.json({
       success: true,

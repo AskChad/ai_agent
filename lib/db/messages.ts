@@ -47,10 +47,13 @@ export async function getMessage(messageId: string): Promise<Message> {
  */
 export async function createMessage(input: {
   conversation_id: string
+  account_id: string
   role: 'user' | 'assistant' | 'system'
   content: string
+  direction?: 'inbound' | 'outbound'
+  source?: 'contact' | 'ai_agent' | 'ghl_user' | 'ghl_automation' | 'system'
+  channel?: string
   ghl_message_id?: string
-  metadata?: Record<string, any>
   precedes_user_reply?: boolean
 }): Promise<Message> {
   try {
@@ -58,6 +61,8 @@ export async function createMessage(input: {
       conversationId: input.conversation_id,
       role: input.role,
       contentLength: input.content.length,
+      direction: input.direction,
+      source: input.source,
     })
 
     const supabase = createClient()
@@ -81,10 +86,13 @@ export async function createMessage(input: {
       .from('messages')
       .insert({
         conversation_id: input.conversation_id,
+        account_id: input.account_id,
         role: input.role,
         content: input.content,
+        direction: input.direction || null,
+        source: input.source || null,
+        channel: input.channel || null,
         ghl_message_id: input.ghl_message_id || null,
-        metadata: input.metadata || null,
         precedes_user_reply: input.precedes_user_reply ?? false,
         embedding: embedding,
       })
@@ -98,6 +106,8 @@ export async function createMessage(input: {
     logger.info('Message created successfully', {
       messageId: data.id,
       conversationId: input.conversation_id,
+      direction: input.direction,
+      source: input.source,
     })
 
     return data
@@ -318,7 +328,6 @@ export async function updateMessage(
   messageId: string,
   updates: {
     content?: string
-    metadata?: Record<string, any>
   }
 ): Promise<Message> {
   try {
@@ -341,7 +350,6 @@ export async function updateMessage(
 
     const updateData: {
       content?: string
-      metadata?: Record<string, any>
       updated_at: string
       embedding?: number[]
     } = {
