@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const message = validation.data;
 
     // Find account by GHL location ID
-    const { data: accountData, error: accountError } = await supabase
+    const { data: accountData, error: accountError } = await (supabase as any)
       .from('accounts')
       .select('id, account_name')
       .eq('ghl_location_id', message.locationId)
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Store the INBOUND message from contact
-    const { data: storedMessage, error: messageError } = await supabase
+    const { data: storedMessage, error: messageError } = await (supabase as any)
       .from('messages')
       .insert({
         conversation_id: conversation.id,
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
           conversationId: message.conversationId,
           raw: message,
         },
-      } as any)
+      })
       .select()
       .single();
 
@@ -168,7 +168,7 @@ async function findOrCreateConversation(
 ): Promise<any> {
   // Try to find by GHL conversation ID first
   if (ghlConversationId) {
-    const { data: existingConv } = await supabase
+    const { data: existingConv } = await (supabase as any)
       .from('conversations')
       .select('*')
       .eq('ghl_conversation_id', ghlConversationId)
@@ -179,7 +179,7 @@ async function findOrCreateConversation(
   }
 
   // Try to find by contact ID
-  const { data: existingConv } = await supabase
+  const { data: existingConv } = await (supabase as any)
     .from('conversations')
     .select('*')
     .eq('ghl_contact_id', ghlContactId)
@@ -192,7 +192,7 @@ async function findOrCreateConversation(
   if (existingConv) return existingConv;
 
   // Create new conversation
-  const { data: newConv, error: convError } = await supabase
+  const { data: newConv, error: convError } = await (supabase as any)
     .from('conversations')
     .insert({
       account_id: accountId,

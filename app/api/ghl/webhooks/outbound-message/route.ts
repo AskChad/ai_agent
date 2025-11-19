@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const message = validation.data;
 
     // Find account by GHL location ID
-    const { data: account, error: accountError } = await supabase
+    const { data: account, error: accountError } = await (supabase as any)
       .from('accounts')
       .select('id, account_name')
       .eq('ghl_location_id', message.locationId)
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     const content = extractMessageContent(message);
 
     // Find conversation (should already exist)
-    const { data: conversation } = await supabase
+    const { data: conversation } = await (supabase as any)
       .from('conversations')
       .select('*')
       .eq('ghl_contact_id', message.contactId)
@@ -209,7 +209,7 @@ async function determineMessageSource(
 
   // STEP 1: Check if this message already exists in our database
   // If we already stored it with role='assistant', it means OUR AI sent it
-  const { data: existingMessage } = await supabase
+  const { data: existingMessage } = await (supabase as any)
     .from('messages')
     .select('id, role, source')
     .eq('conversation_id', conversationId)
