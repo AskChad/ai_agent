@@ -184,7 +184,6 @@ async function findOrCreateConversation(
     .select('*')
     .eq('ghl_contact_id', ghlContactId)
     .eq('account_id', accountId)
-    .eq('is_active', true)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -202,7 +201,6 @@ async function findOrCreateConversation(
       contact_phone: contactInfo.phone,
       contact_email: contactInfo.email,
       channel: channel.toLowerCase(),
-      is_active: true,
     })
     .select()
     .single();

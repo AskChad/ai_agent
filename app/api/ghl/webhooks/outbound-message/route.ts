@@ -90,7 +90,6 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('ghl_contact_id', message.contactId)
       .eq('account_id', account.id)
-      .eq('is_active', true)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -106,7 +105,6 @@ export async function POST(request: NextRequest) {
           ghl_conversation_id: message.conversationId,
           contact_name: 'Unknown Contact',
           channel: message.type.toLowerCase(),
-          is_active: true,
         })
         .select()
         .single();
