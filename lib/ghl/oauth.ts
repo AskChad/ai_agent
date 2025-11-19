@@ -17,14 +17,57 @@ const GHL_AUTH_BASE_URL = 'https://marketplace.gohighlevel.com/oauth/chooselocat
 const GHL_TOKEN_URL = 'https://services.leadconnectorhq.com/oauth/token';
 const GHL_LOCATION_TOKEN_URL = 'https://services.leadconnectorhq.com/oauth/locationToken';
 
-// Required OAuth scopes for messaging
-const REQUIRED_SCOPES = [
+/**
+ * Available OAuth scopes for GHL Marketplace App
+ * Users can select which permissions to request
+ */
+export const AVAILABLE_SCOPES = {
+  // Conversations
+  'conversations.readonly': 'Read conversations',
+  'conversations.write': 'Write conversations',
+  'conversations/message.readonly': 'Read messages',
+  'conversations/message.write': 'Send messages',
+
+  // Contacts
+  'contacts.readonly': 'Read contacts',
+  'contacts.write': 'Create/update contacts',
+
+  // Opportunities
+  'opportunities.readonly': 'Read opportunities',
+  'opportunities.write': 'Create/update opportunities',
+
+  // Calendars
+  'calendars.readonly': 'Read calendars',
+  'calendars.write': 'Book appointments',
+
+  // Locations
+  'locations.readonly': 'Read location info',
+  'locations.write': 'Update location settings',
+
+  // Workflows
+  'workflows.readonly': 'Read workflows',
+
+  // Campaigns
+  'campaigns.readonly': 'Read campaigns',
+
+  // Custom Fields
+  'customFields.readonly': 'Read custom fields',
+  'customFields.write': 'Update custom fields',
+
+  // Users
+  'users.readonly': 'Read users',
+  'users.write': 'Manage users',
+} as const;
+
+// Default scopes for basic messaging functionality
+const DEFAULT_SCOPES = [
   'conversations.readonly',
   'conversations.write',
   'conversations/message.readonly',
   'conversations/message.write',
   'contacts.readonly',
   'contacts.write',
+  'locations.readonly',
 ];
 
 export interface GHLTokenResponse {
@@ -48,22 +91,35 @@ export interface GHLLocationTokenResponse {
 
 /**
  * Generate OAuth authorization URL to redirect user to GHL
+ *
+ * @param clientId - GHL OAuth client ID
+ * @param redirectUri - OAuth callback URL
+ * @param state - CSRF protection token
+ * @param scopes - Array of scope strings (defaults to DEFAULT_SCOPES)
  */
 export function getAuthorizationUrl(
   clientId: string,
   redirectUri: string,
-  state?: string
+  state?: string,
+  scopes?: string[]
 ): string {
+  const selectedScopes = scopes && scopes.length > 0 ? scopes : DEFAULT_SCOPES;
+
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: REQUIRED_SCOPES.join(' '),
+    scope: selectedScopes.join(' '),
   });
 
   if (state) {
     params.append('state', state);
   }
+
+  logger.debug('Generated OAuth authorization URL', {
+    clientId,
+    scopes: selectedScopes,
+  });
 
   return `${GHL_AUTH_BASE_URL}?${params.toString()}`;
 }
@@ -218,6 +274,112 @@ export async function storeTokens(
     logger.error('Failed to store GHL tokens', {
       accountId,
       locationId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Auto-exchange company-level token for location-specific tokens
+ *
+ * When user authorizes at company/agency level, GHL returns a company token.
+ * This function automatically exchanges it for location-specific tokens
+ * and stores them for each location.
+ *
+ * @param accountId - Account ID
+ * @param tokens - Company-level token response
+ * @param clientId - GHL client ID
+ * @param clientSecret - GHL client secret
+ * @returns Array of location IDs that were set up
+ */
+export async function autoExchangeLocationTokens(
+  accountId: string,
+  tokens: GHLTokenResponse,
+  clientId: string,
+  clientSecret: string
+): Promise<string[]> {
+  // Only exchange if this is a company-level token
+  if (tokens.userType !== 'Company' || !tokens.companyId) {
+    logger.debug('Token is location-level, no exchange needed', {
+      userType: tokens.userType,
+    });
+    return tokens.locationId ? [tokens.locationId] : [];
+  }
+
+  logger.info('Auto-exchanging company token for location tokens', {
+    accountId,
+    companyId: tokens.companyId,
+  });
+
+  try {
+    // Get list of locations for this company
+    const locationsResponse = await fetch(
+      `https://services.leadconnectorhq.com/locations/search?companyId=${tokens.companyId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+          Version: '2021-07-28',
+        },
+      }
+    );
+
+    if (!locationsResponse.ok) {
+      throw new Error('Failed to fetch locations');
+    }
+
+    const locationsData = await locationsResponse.json();
+    const locations = locationsData.locations || [];
+
+    logger.info(`Found ${locations.length} locations for company`, {
+      companyId: tokens.companyId,
+      locations: locations.map((l: any) => l.id),
+    });
+
+    // Exchange company token for location-specific tokens
+    const locationIds: string[] = [];
+
+    for (const location of locations) {
+      try {
+        logger.debug('Exchanging token for location', {
+          locationId: location.id,
+          locationName: location.name,
+        });
+
+        const locationToken = await getLocationToken(
+          tokens.access_token,
+          location.id,
+          clientId,
+          clientSecret
+        );
+
+        // Store location-specific token
+        await storeTokens(accountId, location.id, {
+          ...tokens,
+          access_token: locationToken.access_token,
+          expires_in: locationToken.expires_in,
+          locationId: location.id,
+        });
+
+        locationIds.push(location.id);
+
+        logger.info('Location token exchanged and stored', {
+          locationId: location.id,
+          locationName: location.name,
+        });
+      } catch (error) {
+        logger.error('Failed to exchange token for location', {
+          locationId: location.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        // Continue with other locations even if one fails
+      }
+    }
+
+    return locationIds;
+  } catch (error) {
+    logger.error('Failed to auto-exchange location tokens', {
+      accountId,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;

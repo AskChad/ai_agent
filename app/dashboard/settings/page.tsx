@@ -4,11 +4,23 @@ import { useState, useEffect } from 'react';
 import { Button, Card, CardHeader, CardTitle, CardContent, Badge } from '@/components/ui';
 import { getChannelDisplayName, getChannelIcon } from '@/lib/ghl/channels';
 
+interface OAuthScope {
+  id: string;
+  description: string;
+  category: string;
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [ghlConnected, setGhlConnected] = useState(false);
   const [ghlLocation, setGhlLocation] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // OAuth scope selection
+  const [showScopeSelector, setShowScopeSelector] = useState(false);
+  const [availableScopes, setAvailableScopes] = useState<Record<string, string>>({});
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
+  const [useDefaultScopes, setUseDefaultScopes] = useState(true);
 
   useEffect(() => {
     // Check URL params for OAuth callback messages
@@ -27,9 +39,36 @@ export default function SettingsPage() {
       window.history.replaceState({}, '', '/dashboard/settings');
     }
 
+    // Check URL for multi-location success
+    if (params.get('locations')) {
+      const locationCount = params.get('locations');
+      setMessage({
+        type: 'success',
+        text: `Successfully connected to GoHighLevel! ${locationCount} location(s) configured.`
+      });
+      setGhlConnected(true);
+      window.history.replaceState({}, '', '/dashboard/settings');
+    }
+
     // Check current GHL connection status
     checkGHLStatus();
+
+    // Load available OAuth scopes
+    loadAvailableScopes();
   }, []);
+
+  const loadAvailableScopes = async () => {
+    try {
+      const response = await fetch('/api/ghl/scopes');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableScopes(data.scopes || {});
+        setSelectedScopes(data.defaultScopes || []);
+      }
+    } catch (error) {
+      console.error('Failed to load OAuth scopes:', error);
+    }
+  };
 
   const checkGHLStatus = async () => {
     try {
@@ -49,7 +88,14 @@ export default function SettingsPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/ghl/oauth/authorize');
+      // Determine which scopes to request
+      const scopesToRequest = useDefaultScopes ? undefined : selectedScopes;
+
+      const response = await fetch('/api/ghl/oauth/authorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scopes: scopesToRequest }),
+      });
       const data = await response.json();
 
       if (data.authUrl) {
@@ -63,6 +109,14 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleScope = (scope: string) => {
+    setSelectedScopes(prev =>
+      prev.includes(scope)
+        ? prev.filter(s => s !== scope)
+        : [...prev, scope]
+    );
   };
 
   const handleDisconnectGHL = async () => {
@@ -151,6 +205,66 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* OAuth Scope Selection */}
+            {!ghlConnected && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-sm text-gray-900">OAuth Permissions</h4>
+                  <button
+                    onClick={() => setShowScopeSelector(!showScopeSelector)}
+                    className="text-sm text-blue-900 hover:underline font-medium"
+                  >
+                    {showScopeSelector ? 'Hide' : 'Customize Permissions'}
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useDefaultScopes}
+                      onChange={(e) => setUseDefaultScopes(e.target.checked)}
+                      className="w-4 h-4 text-blue-900 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-900">
+                      Use recommended permissions (messaging, contacts, location info)
+                    </span>
+                  </label>
+
+                  {showScopeSelector && !useDefaultScopes && (
+                    <div className="mt-4 space-y-2 max-h-64 overflow-y-auto">
+                      <p className="text-xs text-gray-900 mb-3">
+                        Select which permissions to request. More permissions give your AI agent more capabilities.
+                      </p>
+                      {Object.entries(availableScopes).map(([scope, description]) => (
+                        <label
+                          key={scope}
+                          className="flex items-start gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedScopes.includes(scope)}
+                            onChange={() => toggleScope(scope)}
+                            className="w-4 h-4 text-blue-900 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">{scope}</div>
+                            <div className="text-xs text-gray-900">{description}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {!useDefaultScopes && (
+                    <div className="mt-2 text-xs text-gray-900">
+                      <strong>Selected:</strong> {selectedScopes.length} permission(s)
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3">
               {!ghlConnected ? (

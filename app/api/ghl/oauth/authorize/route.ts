@@ -5,11 +5,23 @@ import { getAuthorizationUrl } from '@/lib/ghl/oauth';
 /**
  * Initiate GHL OAuth flow
  * Redirects user to GoHighLevel authorization page
+ *
+ * Accepts optional POST body with scopes array:
+ * POST /api/ghl/oauth/authorize
+ * { "scopes": ["conversations.readonly", "contacts.write", ...] }
  */
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  return handleOAuthAuthorize(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleOAuthAuthorize(request);
+}
+
+async function handleOAuthAuthorize(request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -30,19 +42,37 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get optional scopes from request body (POST) or query params (GET)
+    let selectedScopes: string[] | undefined;
+
+    if (request.method === 'POST') {
+      try {
+        const body = await request.json();
+        selectedScopes = body.scopes;
+      } catch {
+        // Ignore JSON parse errors
+      }
+    } else {
+      const scopesParam = request.nextUrl.searchParams.get('scopes');
+      if (scopesParam) {
+        selectedScopes = scopesParam.split(',');
+      }
+    }
+
     // Generate state parameter for CSRF protection
     const state = Buffer.from(JSON.stringify({
       userId: user.id,
       timestamp: Date.now(),
     })).toString('base64');
 
-    // Generate authorization URL
-    const authUrl = getAuthorizationUrl(clientId, redirectUri, state);
+    // Generate authorization URL with custom scopes
+    const authUrl = getAuthorizationUrl(clientId, redirectUri, state, selectedScopes);
 
     // Return redirect URL for frontend to handle
     return NextResponse.json({
       success: true,
       authUrl,
+      scopes: selectedScopes || 'default',
     });
 
   } catch (error) {
