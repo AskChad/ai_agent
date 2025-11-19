@@ -124,33 +124,48 @@ export async function GET() {
 
     const message1 = await createMessage({
       conversation_id: conversation1.id,
+      account_id: account.id,
       role: 'user',
       content: 'Hello! I need help with my account.',
+      direction: 'inbound',
+      source: 'contact',
     })
 
     const message2 = await createMessage({
       conversation_id: conversation1.id,
+      account_id: account.id,
       role: 'assistant',
       content: 'Hi! I would be happy to help you with your account.',
+      direction: 'outbound',
+      source: 'ai_agent',
     })
 
     const message3 = await createMessage({
       conversation_id: conversation1.id,
+      account_id: account.id,
       role: 'user',
       content: 'How can I reset my password?',
+      direction: 'inbound',
+      source: 'contact',
     })
 
     const message4 = await createMessage({
       conversation_id: conversation1.id,
+      account_id: account.id,
       role: 'assistant',
       content: 'To reset your password, you can go to...',
+      direction: 'outbound',
+      source: 'ai_agent',
       precedes_user_reply: true, // User interrupted
     })
 
     const message5 = await createMessage({
       conversation_id: conversation1.id,
+      account_id: account.id,
       role: 'user',
       content: 'Actually, I found it. Thanks!',
+      direction: 'inbound',
+      source: 'contact',
     })
 
     results.test4_create_messages = {
