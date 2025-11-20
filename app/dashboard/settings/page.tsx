@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import { getChannelDisplayName, getChannelIcon } from '@/lib/ghl/channels';
+import ScopeSelectorModal from '@/components/ScopeSelectorModal';
+import { getAllScopesString } from '@/lib/constants/ghl-scopes';
 
 interface AccountSettings {
   context_window_days: number;
@@ -92,9 +94,6 @@ export default function SettingsPage() {
   const [ghlScopes, setGhlScopes] = useState<string[]>([]);
   const [ghlExpiresAt, setGhlExpiresAt] = useState<string | null>(null);
   const [showScopeSelector, setShowScopeSelector] = useState(false);
-  const [availableScopes, setAvailableScopes] = useState<Record<string, string>>({});
-  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
-  const [useDefaultScopes, setUseDefaultScopes] = useState(true);
 
   // OAuth App Configuration state
   const [oauthConfig, setOauthConfig] = useState({
@@ -153,7 +152,6 @@ export default function SettingsPage() {
 
     loadAccountSettings();
     checkGHLStatus();
-    loadAvailableScopes();
     loadOAuthConfig();
   }, []);
 
@@ -168,19 +166,6 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Failed to load account settings:', error);
-    }
-  };
-
-  const loadAvailableScopes = async () => {
-    try {
-      const response = await fetch('/api/ghl/scopes');
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableScopes(data.scopes || {});
-        setSelectedScopes(data.defaultScopes || []);
-      }
-    } catch (error) {
-      console.error('Failed to load OAuth scopes:', error);
     }
   };
 
@@ -204,12 +189,9 @@ export default function SettingsPage() {
     setMessage(null);
 
     try {
-      const scopesToRequest = useDefaultScopes ? undefined : selectedScopes;
-
       const response = await fetch('/api/ghl/oauth/authorize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scopes: scopesToRequest }),
       });
       const data = await response.json();
 
@@ -223,12 +205,6 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleScope = (scope: string) => {
-    setSelectedScopes((prev) =>
-      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]
-    );
   };
 
   const handleDisconnectGHL = async () => {
@@ -493,65 +469,6 @@ export default function SettingsPage() {
                       <li>AI-powered message responses</li>
                     </ul>
 
-                    {/* OAuth Scope Selection */}
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-sm text-gray-900">OAuth Permissions</h4>
-                        <button
-                          onClick={() => setShowScopeSelector(!showScopeSelector)}
-                          className="text-sm text-blue-600 hover:underline font-medium"
-                        >
-                          {showScopeSelector ? 'Hide' : 'Customize Permissions'}
-                        </button>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={useDefaultScopes}
-                            onChange={(e) => setUseDefaultScopes(e.target.checked)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">
-                            Use recommended permissions (messaging, contacts, location info)
-                          </span>
-                        </label>
-
-                        {showScopeSelector && !useDefaultScopes && (
-                          <div className="mt-4 space-y-2 max-h-64 overflow-y-auto">
-                            <p className="text-xs text-gray-600 mb-3">
-                              Select which permissions to request. More permissions give your AI agent
-                              more capabilities.
-                            </p>
-                            {Object.entries(availableScopes).map(([scope, description]) => (
-                              <label
-                                key={scope}
-                                className="flex items-start gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedScopes.includes(scope)}
-                                  onChange={() => toggleScope(scope)}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
-                                />
-                                <div className="flex-1">
-                                  <div className="text-sm font-medium text-gray-900">{scope}</div>
-                                  <div className="text-xs text-gray-600">{description}</div>
-                                </div>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-
-                        {!useDefaultScopes && (
-                          <div className="mt-2 text-xs text-gray-600">
-                            <strong>Selected:</strong> {selectedScopes.length} permission(s)
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
                     <button
                       onClick={handleConnectGHL}
                       disabled={loading}
@@ -672,6 +589,22 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Scopes
                     </label>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowScopeSelector(true)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      >
+                        Select Scopes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOauthConfig({ ...oauthConfig, scopes: getAllScopesString() })}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                      >
+                        Add All Scopes
+                      </button>
+                    </div>
                     <textarea
                       value={oauthConfig.scopes}
                       onChange={(e) => setOauthConfig({ ...oauthConfig, scopes: e.target.value })}
@@ -683,7 +616,6 @@ export default function SettingsPage() {
                       Space-separated list of OAuth scopes (permissions) requested from GoHighLevel.
                     </p>
                   </div>
-
                   {/* Agency Exchange Checkbox */}
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <div className="flex items-start gap-3">
@@ -727,6 +659,14 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Scope Selector Modal */}
+              <ScopeSelectorModal
+                isOpen={showScopeSelector}
+                onClose={() => setShowScopeSelector(false)}
+                currentScopes={oauthConfig.scopes}
+                onSave={(scopes) => setOauthConfig({ ...oauthConfig, scopes })}
+              />
             </div>
           </div>
         );
