@@ -18,8 +18,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { config } from '@/lib/config'
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     config.supabase.url,
@@ -56,8 +56,8 @@ export function createClient() {
  * Create an admin client with service role key
  * Use this for operations that bypass RLS
  */
-export function createAdminClient() {
-  const cookieStore = cookies()
+export async function createAdminClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     config.supabase.url,
