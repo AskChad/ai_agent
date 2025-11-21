@@ -19,22 +19,18 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Debug: Log env vars
-      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      console.log('Email:', email);
-      console.log('Password length:', password.length);
-
       const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
+      // Clear any existing session first to avoid stale state issues
+      await supabase.auth.signOut();
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      console.log('Auth result:', { data, error: authError });
 
       if (authError) {
         setError(authError.message);
