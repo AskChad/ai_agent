@@ -4,21 +4,44 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, Input, Button } from '@/components/ui';
+import { createBrowserClient } from '@supabase/ssr';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
-    // Mock login - replace with actual authentication
-    setTimeout(() => {
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // Redirect to dashboard on success
       router.push('/dashboard');
-    }, 1000);
+      router.refresh();
+    } catch (err) {
+      setError('An unexpected error occurred');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -37,6 +60,11 @@ export default function LoginPage() {
         <Card>
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
               <Input
                 label="Email"
                 type="email"
