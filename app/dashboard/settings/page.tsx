@@ -507,7 +507,7 @@ export default function SettingsPage() {
                       value={oauthConfig.app_name}
                       onChange={(e) => setOauthConfig({ ...oauthConfig, app_name: e.target.value })}
                       placeholder="E.g., 'AI Chat Agent Integration' or 'My GHL App'"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Give your OAuth app a friendly name to identify it easily.
@@ -523,7 +523,7 @@ export default function SettingsPage() {
                       value={oauthConfig.app_description}
                       onChange={(e) => setOauthConfig({ ...oauthConfig, app_description: e.target.value })}
                       placeholder="E.g., 'Production app for AI-powered message responses'"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       rows={2}
                     />
                     <p className="mt-1 text-xs text-gray-500">
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                       value={oauthConfig.client_id}
                       onChange={(e) => setOauthConfig({ ...oauthConfig, client_id: e.target.value })}
                       placeholder="Enter your GHL OAuth Client ID"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -556,7 +556,7 @@ export default function SettingsPage() {
                         value={oauthConfig.client_secret}
                         onChange={(e) => setOauthConfig({ ...oauthConfig, client_secret: e.target.value })}
                         placeholder="Enter your GHL OAuth Client Secret"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <button
                         type="button"
@@ -577,7 +577,7 @@ export default function SettingsPage() {
                       type="text"
                       value={oauthConfig.redirect_uri}
                       onChange={(e) => setOauthConfig({ ...oauthConfig, redirect_uri: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-sm text-gray-900"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       This must match exactly with the redirect URI configured in your GHL OAuth app settings.
@@ -609,7 +609,7 @@ export default function SettingsPage() {
                       value={oauthConfig.scopes}
                       onChange={(e) => setOauthConfig({ ...oauthConfig, scopes: e.target.value })}
                       placeholder="contacts.readonly contacts.write locations.readonly..."
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap break-words"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap break-words"
                       rows={3}
                     />
                     <p className="mt-1 text-xs text-gray-500">
