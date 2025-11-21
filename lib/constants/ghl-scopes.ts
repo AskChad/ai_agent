@@ -431,27 +431,33 @@ export function getScopesByCategory(): Record<string, GHLScope[]> {
 }
 
 /**
+ * Get all scopes available to Sub-Account level apps
+ * Sub-Account apps can use all scopes EXCEPT those requiring SaaS Mode
+ */
+export function getSubAccountScopes(): string {
+  return GHL_SCOPES
+    .filter((scope) => !scope.requiresApproval || scope.approvalType !== 'SaaS Mode')
+    .map((scope) => scope.value)
+    .join(' ');
+}
+
+/**
  * Get commonly used scope combinations
  */
 export const COMMON_SCOPE_SETS = {
-  basic: {
-    name: 'Basic (Read Only)',
-    scopes: 'contacts.readonly locations.readonly users.readonly',
-  },
-  standard: {
-    name: 'Standard (Read/Write Contacts)',
-    scopes: 'contacts.readonly contacts.write locations.readonly opportunities.readonly users.readonly calendars.readonly calendars/events.readonly',
-  },
-  advanced: {
-    name: 'Advanced (Full CRM Access)',
-    scopes: 'contacts.readonly contacts.write opportunities.readonly opportunities.write locations.readonly calendars.readonly calendars/events.readonly calendars/events.write users.readonly conversations.readonly conversations.write conversations/message.readonly conversations/message.write campaigns.readonly',
+  subAccount: {
+    name: 'All Sub-Account',
+    description: 'All scopes available to Sub-Account level apps',
+    scopes: getSubAccountScopes(),
   },
   agency: {
-    name: 'Agency (Marketplace Apps)',
+    name: 'All Agency',
+    description: 'Only scopes available to Agency level apps',
     scopes: 'locations.readonly users.readonly',
   },
-  full: {
-    name: 'Full Access (All Scopes)',
-    scopes: getAllScopesString(),
+  aiAgents: {
+    name: 'AI Agents',
+    description: 'Conversations, custom fields, and custom values for AI chat agents',
+    scopes: 'conversations.readonly conversations.write conversations/message.readonly conversations/message.write locations/customFields.readonly locations/customFields.write locations/customValues.readonly locations/customValues.write contacts.readonly contacts.write',
   },
 };

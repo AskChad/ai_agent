@@ -23,7 +23,6 @@ export default function ScopeSelectorModal({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(['Contacts', 'Locations', 'Opportunities'])
   );
-  const [includeSaasMode, setIncludeSaasMode] = useState(false);
 
   const scopesByCategory = useMemo(() => getScopesByCategory(), []);
 
@@ -63,13 +62,6 @@ export default function ScopeSelectorModal({
       newExpanded.add(category);
     }
     setExpandedCategories(newExpanded);
-  };
-
-  const selectAll = () => {
-    const scopesToSelect = includeSaasMode
-      ? GHL_SCOPES
-      : GHL_SCOPES.filter((s) => !s.requiresApproval);
-    setSelectedScopes(new Set(scopesToSelect.map((s) => s.value)));
   };
 
   const deselectAll = () => {
@@ -116,27 +108,11 @@ export default function ScopeSelectorModal({
           {/* Quick Actions */}
           <div className="mt-4 flex flex-wrap gap-2">
             <button
-              onClick={selectAll}
-              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-            >
-              Select All
-            </button>
-            <button
               onClick={deselectAll}
               className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
             >
               Deselect All
             </button>
-            <div className="border-l border-gray-300 mx-2"></div>
-            <label className="flex items-center gap-2 px-3 py-1 bg-yellow-50 border border-yellow-300 rounded cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeSaasMode}
-                onChange={(e) => setIncludeSaasMode(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <span className="text-sm text-gray-700">Include SaaS Mode</span>
-            </label>
             <div className="border-l border-gray-300 mx-2"></div>
             <span className="text-sm text-gray-600 self-center">Presets:</span>
             {Object.entries(COMMON_SCOPE_SETS).map(([key, preset]) => (
@@ -144,6 +120,7 @@ export default function ScopeSelectorModal({
                 key={key}
                 onClick={() => applyPreset(key as keyof typeof COMMON_SCOPE_SETS)}
                 className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+                title={preset.description}
               >
                 {preset.name}
               </button>
