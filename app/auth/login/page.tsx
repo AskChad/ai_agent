@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, Input, Button } from '@/components/ui';
-import { createBrowserClient } from '@supabase/ssr';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,21 +18,19 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
-      // Clear any existing session first to avoid stale state issues
-      await supabase.auth.signOut();
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Use server-side API for login to properly set cookies
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (authError) {
-        setError(authError.message);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Login failed');
         setIsLoading(false);
         return;
       }
