@@ -18,7 +18,7 @@ export async function GET() {
   try {
     logger.info('Running full integration test...')
 
-    const supabase = createClient()
+    const supabase = await createClient()
     const testId = Date.now()
 
     // Step 1: Create test account

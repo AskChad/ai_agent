@@ -48,7 +48,7 @@ export async function getAccountSettings(
   try {
     logger.debug('Fetching account settings', { accountId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('account_settings')
@@ -98,7 +98,7 @@ export async function createDefaultAccountSettings(
   try {
     logger.info('Creating default account settings', { accountId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('account_settings')
@@ -134,7 +134,7 @@ export async function updateAccountSettings(
   try {
     logger.info('Updating account settings', { accountId, updates })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('account_settings')
@@ -185,7 +185,7 @@ export async function deleteAccountSettings(accountId: string): Promise<void> {
   try {
     logger.warn('Deleting account settings', { accountId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
       .from('account_settings')

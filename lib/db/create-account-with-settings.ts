@@ -57,7 +57,7 @@ export async function createAccountWithSettings(input: {
 
       // Clean up the account
       const { createClient } = await import('@/lib/supabase/server')
-      const supabase = createClient()
+      const supabase = await createClient()
       await supabase.from('accounts').delete().eq('id', account.id)
 
       throw error

@@ -19,7 +19,7 @@ export async function getConversation(
   try {
     logger.debug('Fetching conversation', { conversationId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('conversations')
@@ -56,7 +56,7 @@ export async function getConversationByContactId(
       ghlContactId,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('conversations')
@@ -124,7 +124,7 @@ export async function listConversations(
       sortBy,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     let query = supabase
       .from('conversations')
@@ -176,7 +176,7 @@ export async function createConversation(input: {
       ghlContactId: input.ghl_contact_id,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Check if active conversation already exists
     const existing = await getConversationByContactId(
@@ -239,7 +239,7 @@ export async function updateConversation(
   try {
     logger.info('Updating conversation', { conversationId, updates })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('conversations')
@@ -276,7 +276,7 @@ export async function archiveConversation(
   try {
     logger.info('Archiving conversation', { conversationId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('conversations')
@@ -313,7 +313,7 @@ export async function unarchiveConversation(
   try {
     logger.info('Unarchiving conversation', { conversationId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('conversations')
@@ -351,7 +351,7 @@ export async function deleteConversation(conversationId: string): Promise<void> 
       conversationId,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
       .from('conversations')
@@ -431,7 +431,7 @@ export async function getConversationStats(
   firstMessageAt: string | null
 }> {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data: conversation, error } = await supabase
       .from('conversations')

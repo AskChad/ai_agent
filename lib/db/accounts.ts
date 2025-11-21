@@ -17,7 +17,7 @@ export async function getAccount(accountId: string): Promise<Account> {
   try {
     logger.debug('Fetching account', { accountId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('accounts')
@@ -50,7 +50,7 @@ export async function getAccountByLocationId(
   try {
     logger.debug('Fetching account by location ID', { locationId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('accounts')
@@ -88,7 +88,7 @@ export async function listAccounts(options?: {
 
     logger.debug('Listing accounts', { isActive, limit, offset })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     let query = supabase.from('accounts').select('*', { count: 'exact' })
 
@@ -133,7 +133,7 @@ export async function createAccount(input: {
       locationId: input.ghl_location_id,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Check if location ID already exists
     if (input.ghl_location_id) {
@@ -187,7 +187,7 @@ export async function updateAccount(
   try {
     logger.info('Updating account', { accountId, updates })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Check if location ID is being changed and if it conflicts
     if (updates.ghl_location_id) {
@@ -247,7 +247,7 @@ export async function deleteAccount(accountId: string): Promise<void> {
   try {
     logger.warn('HARD DELETE: Permanently deleting account', { accountId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
       .from('accounts')
@@ -270,7 +270,7 @@ export async function deleteAccount(accountId: string): Promise<void> {
  */
 export async function accountExists(accountId: string): Promise<boolean> {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('accounts')

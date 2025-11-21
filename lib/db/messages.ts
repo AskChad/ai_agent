@@ -18,7 +18,7 @@ export async function getMessage(messageId: string): Promise<Message> {
   try {
     logger.debug('Fetching message', { messageId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('messages')
@@ -65,7 +65,7 @@ export async function createMessage(input: {
       source: input.source,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Generate embedding for the message
     let embedding: number[] | null = null
@@ -150,7 +150,7 @@ export async function getMessages(
       excludePrecedesUserReply,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     let query = supabase
       .from('messages')
@@ -237,7 +237,7 @@ export async function getMessagesSinceDays(
       days,
     })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
@@ -294,7 +294,7 @@ export async function searchMessages(
     // Generate embedding for the query
     const queryEmbedding = await createEmbedding(query)
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Use the search_conversation_history function
     const { data, error } = await supabase.rpc('search_conversation_history', {
@@ -333,7 +333,7 @@ export async function updateMessage(
   try {
     logger.info('Updating message', { messageId, updates })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // If content is being updated, regenerate embedding
     let embedding: number[] | undefined = undefined
@@ -391,7 +391,7 @@ export async function deleteMessage(messageId: string): Promise<void> {
   try {
     logger.warn('HARD DELETE: Permanently deleting message', { messageId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase.from('messages').delete().eq('id', messageId)
 
@@ -419,7 +419,7 @@ export async function countMessages(
   try {
     const { roles, excludePrecedesUserReply = false } = options || {}
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     let query = supabase
       .from('messages')
@@ -454,7 +454,7 @@ export async function getLastMessage(
   conversationId: string
 ): Promise<Message | null> {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('messages')
@@ -482,7 +482,7 @@ export async function getLastUserMessage(
   conversationId: string
 ): Promise<Message | null> {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('messages')
