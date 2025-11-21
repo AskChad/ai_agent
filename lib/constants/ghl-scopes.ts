@@ -448,7 +448,7 @@ export const COMMON_SCOPE_SETS = {
   },
   agency: {
     name: 'Agency (Exchange Agencies)',
-    scopes: 'locations.readonly locations/customFields.readonly locations/customFields.write locations/customValues.readonly locations/customValues.write contacts.readonly contacts.write opportunities.readonly opportunities.write conversations.readonly conversations.write conversations/message.readonly conversations/message.write calendars.readonly calendars.write calendars/events.readonly calendars/events.write users.readonly campaigns.readonly forms.readonly workflows.readonly',
+    scopes: 'contacts.readonly contacts.write conversations.readonly conversations.write conversations/message.readonly conversations/message.write opportunities.readonly opportunities.write locations.readonly users.readonly',
   },
   full: {
     name: 'Full Access (All Scopes)',
