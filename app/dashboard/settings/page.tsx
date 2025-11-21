@@ -102,7 +102,7 @@ export default function SettingsPage() {
     client_id: '',
     client_secret: '',
     redirect_uri: typeof window !== 'undefined'
-      ? `${window.location.origin}/api/ghl/oauth/callback`
+      ? `${window.location.origin}/api/agentghl/oauth/callback`
       : '',
     scopes: 'conversations.readonly conversations.write conversations/message.readonly conversations/message.write contacts.readonly contacts.write locations.readonly',
     agency_exchange: false,
