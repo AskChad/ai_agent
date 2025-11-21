@@ -193,15 +193,15 @@ export default function ScopeSelectorModal({
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{scope.label}</span>
+                          <span className="font-medium text-gray-900 block">{scope.label}</span>
                           {scope.requiresApproval && (
                             <span className="px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-300 rounded">
                               {scope.approvalType}
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-gray-600">{scope.description}</div>
-                        <div className="text-xs text-gray-400 font-mono mt-1">{scope.value}</div>
+                        <div className="block text-sm text-gray-600 break-words">{scope.description}</div>
+                        <div className="block text-xs text-gray-400 font-mono mt-1 break-all">{scope.value}</div>
                       </div>
                     </label>
                   ))}

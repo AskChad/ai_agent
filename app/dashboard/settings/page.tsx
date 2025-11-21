@@ -609,7 +609,7 @@ export default function SettingsPage() {
                       value={oauthConfig.scopes}
                       onChange={(e) => setOauthConfig({ ...oauthConfig, scopes: e.target.value })}
                       placeholder="contacts.readonly contacts.write locations.readonly..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap break-words"
                       rows={3}
                     />
                     <p className="mt-1 text-xs text-gray-500">
