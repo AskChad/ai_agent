@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthorizationUrl } from '@/lib/ghl/oauth';
+import { getOAuthUrl, GHL_CONFIG } from '@/lib/ghl/client';
 
 /**
  * Initiate GHL OAuth flow
- * Redirects user to GoHighLevel authorization page
+ * Uses the official GHL SDK for OAuth authorization
  *
- * Accepts optional POST body with scopes array:
+ * Accepts optional POST body with scopes:
  * POST /api/ghl/oauth/authorize
- * { "scopes": ["conversations.readonly", "contacts.write", ...] }
+ * { "scopes": "conversations.readonly contacts.write ..." }
  */
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -31,32 +31,12 @@ async function handleOAuthAuthorize(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Get GHL OAuth credentials from environment
-    const clientId = process.env.GHL_CLIENT_ID;
-    const redirectUri = process.env.GHL_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/ghl/oauth/callback`;
-
-    if (!clientId) {
+    // Check if GHL OAuth is configured
+    if (!GHL_CONFIG.clientId) {
       return NextResponse.json(
         { error: 'GHL OAuth not configured. Please set GHL_CLIENT_ID environment variable.' },
         { status: 500 }
       );
-    }
-
-    // Get optional scopes from request body (POST) or query params (GET)
-    let selectedScopes: string[] | undefined;
-
-    if (request.method === 'POST') {
-      try {
-        const body = await request.json();
-        selectedScopes = body.scopes;
-      } catch {
-        // Ignore JSON parse errors
-      }
-    } else {
-      const scopesParam = request.nextUrl.searchParams.get('scopes');
-      if (scopesParam) {
-        selectedScopes = scopesParam.split(',');
-      }
     }
 
     // Generate state parameter for CSRF protection
@@ -65,14 +45,14 @@ async function handleOAuthAuthorize(request: NextRequest) {
       timestamp: Date.now(),
     })).toString('base64');
 
-    // Generate authorization URL with custom scopes
-    const authUrl = getAuthorizationUrl(clientId, redirectUri, state, selectedScopes);
+    // Generate authorization URL using SDK
+    const authUrl = getOAuthUrl(state);
 
     // Return redirect URL for frontend to handle
     return NextResponse.json({
       success: true,
       authUrl,
-      scopes: selectedScopes || 'default',
+      scopes: GHL_CONFIG.scopes,
     });
 
   } catch (error) {

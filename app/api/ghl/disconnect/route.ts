@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { revokeTokens } from '@/lib/ghl/oauth';
+import { ghlSessionStorage } from '@/lib/ghl/supabase-session-storage';
 
 /**
  * Disconnect GoHighLevel integration
+ * Removes session from both legacy and SDK tables
  */
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -18,22 +19,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Get location ID before revoking
-    const { data: tokens } = await supabase
+    let disconnected = false;
+
+    // First try to disconnect from SDK sessions table
+    const { data: sessions } = await supabase
+      .from('ghl_sessions')
+      .select('location_id')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (sessions) {
+      await ghlSessionStorage.delete(sessions.location_id);
+      disconnected = true;
+    }
+
+    // Also try to disconnect from legacy table
+    const { data: legacyTokens } = await supabase
       .from('ghl_oauth_tokens')
       .select('location_id')
       .eq('account_id', user.id)
       .single();
 
-    if (!tokens) {
+    if (legacyTokens) {
+      await supabase
+        .from('ghl_oauth_tokens')
+        .delete()
+        .eq('account_id', user.id);
+      disconnected = true;
+    }
+
+    if (!disconnected) {
       return NextResponse.json(
         { error: 'No GHL connection found' },
         { status: 404 }
       );
     }
-
-    // Revoke tokens
-    await revokeTokens(user.id, tokens.location_id);
 
     // Clear GHL location ID from account
     await supabase

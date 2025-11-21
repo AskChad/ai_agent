@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { ghlSessionStorage } from '@/lib/ghl/supabase-session-storage';
 
 /**
  * Check GoHighLevel connection status for current user
+ * Checks both legacy ghl_oauth_tokens table and new ghl_sessions table
  */
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -17,7 +19,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Check for OAuth tokens
+    // First check the new ghl_sessions table (SDK-based)
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('ghl_sessions')
+      .select('location_id, expires_at, scope, user_type')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!sessionsError && sessions) {
+      const expiresAt = new Date(sessions.expires_at);
+      const isExpired = expiresAt.getTime() < Date.now();
+
+      return NextResponse.json({
+        connected: !isExpired,
+        locationId: sessions.location_id,
+        expiresAt: sessions.expires_at,
+        scopes: sessions.scope?.split(' ') || [],
+        userType: sessions.user_type,
+        source: 'sdk',
+      });
+    }
+
+    // Fall back to legacy ghl_oauth_tokens table
     const { data: tokens, error: tokensError } = await supabase
       .from('ghl_oauth_tokens')
       .select('location_id, expires_at, scope')
@@ -50,6 +74,7 @@ export async function GET(request: NextRequest) {
       locationId: tokens.location_id,
       expiresAt: tokens.expires_at,
       scopes: tokens.scope?.split(' ') || [],
+      source: 'legacy',
     });
 
   } catch (error) {
