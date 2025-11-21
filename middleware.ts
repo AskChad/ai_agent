@@ -10,16 +10,9 @@ export async function middleware(request: NextRequest) {
   const isWebhook = path.startsWith('/api/ghl/webhooks/');
 
   if (isWebhook) {
-    // Create response that bypasses protection
     const response = NextResponse.next();
-    // Prevent caching of webhook responses
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
-  }
-
-  // Redirect root to login
-  if (path === '/') {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
   // Create Supabase client and refresh session
@@ -75,8 +68,42 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session - this is critical for auth to work properly
-  await supabase.auth.getUser();
+  // Get current user - this also refreshes the session
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  // Define route types
+  const isAuthRoute = path.startsWith('/auth');
+  const isProtectedRoute = path.startsWith('/dashboard') ||
+                          (path.startsWith('/api/') && !path.startsWith('/api/auth'));
+  const isRootPath = path === '/';
+
+  // Redirect root to appropriate page
+  if (isRootPath) {
+    if (user) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    return NextResponse.redirect(new URL('/auth/login', request.url));
+  }
+
+  // Protect dashboard and API routes - redirect to login if not authenticated
+  if (isProtectedRoute && !user) {
+    // For API routes, return 401 instead of redirect
+    if (path.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    // For page routes, redirect to login
+    const redirectUrl = new URL('/auth/login', request.url);
+    redirectUrl.searchParams.set('redirectTo', path);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (isAuthRoute && user && !path.includes('logout')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   return response;
 }
