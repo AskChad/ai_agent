@@ -20,7 +20,7 @@ export async function GET() {
     const { data: agents, error } = await supabase
       .from('agents')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('account_id', user.id)
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     const { data: agent, error } = await supabase
       .from('agents')
       .insert({
-        user_id: user.id,
+        account_id: user.id,
         name: body.name.trim(),
         description: body.description || null,
         ai_provider: body.ai_provider || 'openai',
