@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       .from('agents')
       .select('id, name')
       .eq('id', agentId)
-      .eq('account_id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (agentError || !agent) {
