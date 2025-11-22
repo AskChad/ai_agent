@@ -68,6 +68,34 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Check if user has an account, create one if not
+    const { data: existingAccount } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!existingAccount) {
+      // Create an account for this user
+      const { error: accountError } = await supabase
+        .from('accounts')
+        .insert({
+          id: user.id,
+          account_name: user.email || 'My Account',
+          is_active: true,
+          max_agents: 10,
+          is_platform_admin: false,
+        });
+
+      if (accountError) {
+        console.error('Error creating account:', accountError);
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to create account: ' + accountError.message
+        }, { status: 500 });
+      }
+    }
+
     // Create the agent
     const { data: agent, error } = await supabase
       .from('agents')
