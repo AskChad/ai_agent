@@ -445,6 +445,16 @@ export function getSubAccountScopes(): string {
  * Get commonly used scope combinations
  */
 export const COMMON_SCOPE_SETS = {
+  agentStandard: {
+    name: 'Agent Standard',
+    description: 'Standard scopes for AI Agent apps - calendars, conversations, contacts, opportunities, and more',
+    scopes: 'calendars.readonly calendars.write calendars/events.readonly calendars/events.write calendars/groups.readonly calendars/groups.write calendars/resources.readonly calendars/resources.write conversations.readonly conversations.write conversations/message.readonly conversations/message.write conversations/reports.readonly conversations/livechat.write contacts.readonly contacts.write locations/customValues.readonly locations/customValues.write locations/customFields.readonly locations/customFields.write locations/tags.readonly locations/tags.write locations/templates.readonly oauth.readonly oauth.write payments/orders.readonly payments/orders.write opportunities.readonly opportunities.write medias.readonly medias.write locations.readonly',
+  },
+  aiAgents: {
+    name: 'AI Agents (Minimal)',
+    description: 'Minimal scopes for AI chat agents - conversations and contacts only',
+    scopes: 'conversations.readonly conversations.write conversations/message.readonly conversations/message.write locations/customFields.readonly locations/customFields.write locations/customValues.readonly locations/customValues.write contacts.readonly contacts.write',
+  },
   subAccount: {
     name: 'All Sub-Account',
     description: 'All scopes available to Sub-Account level apps',
@@ -454,10 +464,5 @@ export const COMMON_SCOPE_SETS = {
     name: 'All Agency',
     description: 'Only scopes available to Agency level apps',
     scopes: 'locations.readonly users.readonly',
-  },
-  aiAgents: {
-    name: 'AI Agents',
-    description: 'Conversations, custom fields, and custom values for AI chat agents',
-    scopes: 'conversations.readonly conversations.write conversations/message.readonly conversations/message.write locations/customFields.readonly locations/customFields.write locations/customValues.readonly locations/customValues.write contacts.readonly contacts.write',
   },
 };
