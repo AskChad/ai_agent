@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -153,6 +153,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     const supabase = await createClient();
+    const adminSupabase = await createAdminClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user) {
@@ -162,13 +163,27 @@ export async function DELETE(
       }, { status: 401 });
     }
 
-    // Get the agent to check if it's default
-    const { data: agent, error: fetchError } = await supabase
-      .from('agents')
-      .select('is_default')
-      .eq('id', id)
-      .eq('account_id', user.id)
+    // Check if user is a platform admin
+    const { data: profile } = await adminSupabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
       .maybeSingle();
+
+    const isPlatformAdmin = profile?.role === 'platform_admin';
+
+    // Get the agent - platform admins can access any agent
+    let agentQuery = adminSupabase
+      .from('agents')
+      .select('is_default, account_id')
+      .eq('id', id);
+
+    // Non-admins can only access their own agents
+    if (!isPlatformAdmin) {
+      agentQuery = agentQuery.eq('account_id', user.id);
+    }
+
+    const { data: agent, error: fetchError } = await agentQuery.maybeSingle();
 
     if (fetchError || !agent) {
       return NextResponse.json({
@@ -177,12 +192,14 @@ export async function DELETE(
       }, { status: 404 });
     }
 
-    // Prevent deletion of default agent if it's the only one
+    const agentOwnerId = agent.account_id;
+
+    // Prevent deletion of default agent if it's the only one (for the agent's owner)
     if (agent.is_default) {
-      const { count } = await supabase
+      const { count } = await adminSupabase
         .from('agents')
         .select('*', { count: 'exact', head: true })
-        .eq('account_id', user.id)
+        .eq('account_id', agentOwnerId)
         .neq('status', 'archived');
 
       if (count && count <= 1) {
@@ -193,15 +210,22 @@ export async function DELETE(
       }
     }
 
-    // Archive instead of hard delete
-    const { error: deleteError } = await supabase
+    // Archive instead of hard delete - use admin client for platform admins
+    const deleteClient = isPlatformAdmin ? adminSupabase : supabase;
+    let deleteQuery = deleteClient
       .from('agents')
       .update({
         status: 'archived',
         updated_at: new Date().toISOString()
       })
-      .eq('id', id)
-      .eq('account_id', user.id);
+      .eq('id', id);
+
+    // Non-admins need the account_id check
+    if (!isPlatformAdmin) {
+      deleteQuery = deleteQuery.eq('account_id', user.id);
+    }
+
+    const { error: deleteError } = await deleteQuery;
 
     if (deleteError) {
       console.error('Error deleting agent:', deleteError);
@@ -213,17 +237,17 @@ export async function DELETE(
 
     // If this was the default agent, set another agent as default
     if (agent.is_default) {
-      const { data: newDefault } = await supabase
+      const { data: newDefault } = await adminSupabase
         .from('agents')
         .select('id')
-        .eq('account_id', user.id)
+        .eq('account_id', agentOwnerId)
         .eq('status', 'active')
         .order('created_at', { ascending: true })
         .limit(1)
         .single();
 
       if (newDefault) {
-        await supabase
+        await adminSupabase
           .from('agents')
           .update({ is_default: true })
           .eq('id', newDefault.id);
