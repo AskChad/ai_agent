@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { ghlSessionStorage } from '@/lib/ghl/supabase-session-storage';
 import { EncryptionService } from '@/lib/services/encryption.service';
 
 const GHL_API_BASE = 'https://services.leadconnectorhq.com';
@@ -113,16 +112,37 @@ export async function GET(request: NextRequest) {
 
     const tokenData = await response.json();
 
-    // Store the session
-    if (tokenData.locationId) {
-      await ghlSessionStorage.set(tokenData.locationId, tokenData);
-    }
-
     console.log('OAuth successful:', {
       userType: tokenData.userType,
       locationId: tokenData.locationId,
       companyId: tokenData.companyId,
     });
+
+    // Store the session in database with user association
+    const sessionId = tokenData.locationId || tokenData.companyId || userId;
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+
+    const { error: sessionError } = await supabase
+      .from('ghl_sessions')
+      .upsert({
+        location_id: sessionId,
+        company_id: tokenData.companyId || null,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        token_type: tokenData.token_type || 'Bearer',
+        expires_at: expiresAt.toISOString(),
+        scope: tokenData.scope,
+        user_type: tokenData.userType,
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'location_id' });
+
+    if (sessionError) {
+      console.error('Error storing GHL session:', sessionError);
+      return NextResponse.redirect(
+        `${appUrl}/dashboard/settings?ghl_error=${encodeURIComponent('Failed to store session: ' + sessionError.message)}`
+      );
+    }
 
     // Handle company-level vs location-level tokens
     if (tokenData.userType === 'Company') {
@@ -132,14 +152,8 @@ export async function GET(request: NextRequest) {
       );
     } else {
       // Location token - redirect with location info
-      if (!tokenData.locationId) {
-        return NextResponse.redirect(
-          `${appUrl}/dashboard/settings?ghl_error=no_location_id`
-        );
-      }
-
       return NextResponse.redirect(
-        `${appUrl}/dashboard/settings?ghl_connected=true&locationId=${tokenData.locationId}`
+        `${appUrl}/dashboard/settings?ghl_connected=true&locationId=${tokenData.locationId || sessionId}`
       );
     }
 

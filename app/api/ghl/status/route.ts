@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
     // First check the new ghl_sessions table (SDK-based)
     const { data: sessions, error: sessionsError } = await supabase
       .from('ghl_sessions')
-      .select('location_id, expires_at, scope, user_type')
+      .select('location_id, company_id, expires_at, scope, user_type')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
