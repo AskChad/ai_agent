@@ -75,8 +75,9 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Load OAuth config from database
-    const { data: config, error: configError } = await supabase
+    // Load OAuth config from database (first try user's config, then platform config)
+    let config = null;
+    const { data: userConfig } = await supabase
       .from('oauth_app_configs')
       .select('*')
       .eq('provider', 'ghl')
@@ -84,8 +85,22 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
       .maybeSingle();
 
-    if (configError || !config) {
-      console.error('Error fetching OAuth config:', configError);
+    config = userConfig;
+
+    // If no user config, try platform config (from platform admin)
+    if (!config) {
+      const { data: platformConfig } = await supabase
+        .from('oauth_app_configs')
+        .select('*')
+        .eq('provider', 'ghl')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+      config = platformConfig;
+    }
+
+    if (!config) {
+      console.error('No OAuth config found for GHL');
       return NextResponse.redirect(
         `${appUrl}/dashboard/settings?ghl_error=config_not_found`
       );
