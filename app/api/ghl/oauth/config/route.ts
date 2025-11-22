@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { EncryptionService } from '@/lib/services/encryption.service';
 
 /**
@@ -9,6 +9,7 @@ import { EncryptionService } from '@/lib/services/encryption.service';
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminSupabase = await createAdminClient();
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -16,8 +17,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Fetch OAuth config from database
-    const { data: config, error: configError } = await supabase
+    // Fetch OAuth config from database (using admin client to bypass RLS)
+    const { data: config, error: configError } = await adminSupabase
       .from('oauth_app_configs')
       .select('*')
       .eq('provider', 'ghl')
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminSupabase = await createAdminClient();
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -104,8 +106,8 @@ export async function POST(request: NextRequest) {
     const encryptionService = new EncryptionService();
     const encryptedSecret = encryptionService.encrypt(client_secret);
 
-    // Check if config already exists
-    const { data: existingConfig } = await supabase
+    // Check if config already exists (using admin client to bypass RLS)
+    const { data: existingConfig } = await adminSupabase
       .from('oauth_app_configs')
       .select('id')
       .eq('provider', 'ghl')
@@ -113,8 +115,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingConfig) {
-      // Update existing config
-      const { error: updateError } = await supabase
+      // Update existing config (using admin client to bypass RLS)
+      const { error: updateError } = await adminSupabase
         .from('oauth_app_configs')
         .update({
           app_name,
@@ -133,7 +135,7 @@ export async function POST(request: NextRequest) {
       if (updateError) {
         console.error('Error updating OAuth config:', updateError);
         return NextResponse.json(
-          { error: 'Failed to update OAuth configuration' },
+          { error: 'Failed to update OAuth configuration: ' + updateError.message },
           { status: 500 }
         );
       }
@@ -143,8 +145,8 @@ export async function POST(request: NextRequest) {
         message: 'OAuth configuration updated successfully',
       });
     } else {
-      // Insert new config
-      const { error: insertError } = await supabase
+      // Insert new config (using admin client to bypass RLS)
+      const { error: insertError } = await adminSupabase
         .from('oauth_app_configs')
         .insert({
           provider: 'ghl',
@@ -163,7 +165,7 @@ export async function POST(request: NextRequest) {
       if (insertError) {
         console.error('Error creating OAuth config:', insertError);
         return NextResponse.json(
-          { error: 'Failed to create OAuth configuration' },
+          { error: 'Failed to create OAuth configuration: ' + insertError.message },
           { status: 500 }
         );
       }
@@ -189,6 +191,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminSupabase = await createAdminClient();
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -196,8 +199,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Deactivate config (soft delete)
-    const { error: deleteError } = await supabase
+    // Deactivate config (soft delete) - using admin client to bypass RLS
+    const { error: deleteError } = await adminSupabase
       .from('oauth_app_configs')
       .update({
         is_active: false,
