@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -76,8 +77,9 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!existingAccount) {
-      // Create an account for this user
-      const { error: accountError } = await supabase
+      // Create an account for this user using admin client to bypass RLS
+      const adminClient = getAdminClient();
+      const { error: accountError } = await adminClient
         .from('accounts')
         .insert({
           id: user.id,
@@ -96,8 +98,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the agent
-    const { data: agent, error } = await supabase
+    // Create the agent using admin client to bypass RLS
+    const adminClient = getAdminClient();
+    const { data: agent, error } = await adminClient
       .from('agents')
       .insert({
         account_id: user.id,
