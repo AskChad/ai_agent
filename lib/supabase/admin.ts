@@ -32,3 +32,19 @@ export function getAdminClient() {
 
   return adminClient
 }
+
+/**
+ * Insert a record into a table using the admin client (bypasses RLS)
+ */
+export async function adminInsert(table: string, data: Record<string, unknown>) {
+  const client = getAdminClient()
+  return client.from(table).insert(data)
+}
+
+/**
+ * Insert a record and return the inserted data
+ */
+export async function adminInsertAndSelect(table: string, data: Record<string, unknown>) {
+  const client = getAdminClient()
+  return client.from(table).insert(data).select().single()
+}

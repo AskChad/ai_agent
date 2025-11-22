@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getAdminClient } from '@/lib/supabase/admin';
+import { adminInsert, adminInsertAndSelect } from '@/lib/supabase/admin';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -78,17 +78,13 @@ export async function POST(request: NextRequest) {
 
     if (!existingAccount) {
       // Create an account for this user using admin client to bypass RLS
-      const adminClient = getAdminClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: accountError } = await (adminClient as any)
-        .from('accounts')
-        .insert({
-          id: user.id,
-          account_name: user.email || 'My Account',
-          is_active: true,
-          max_agents: 10,
-          is_platform_admin: false,
-        });
+      const { error: accountError } = await adminInsert('accounts', {
+        id: user.id,
+        account_name: user.email || 'My Account',
+        is_active: true,
+        max_agents: 10,
+        is_platform_admin: false,
+      });
 
       if (accountError) {
         console.error('Error creating account:', accountError);
@@ -100,24 +96,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the agent using admin client to bypass RLS
-    const adminClientForAgent = getAdminClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: agent, error } = await (adminClientForAgent as any)
-      .from('agents')
-      .insert({
-        account_id: user.id,
-        name: body.name.trim(),
-        description: body.description || null,
-        ai_provider: body.ai_provider || 'openai',
-        ai_model: body.ai_model || 'gpt-4',
-        system_prompt: body.system_prompt || 'You are a helpful AI assistant.',
-        context_window: body.context_window || 60,
-        enable_function_calling: body.enable_function_calling ?? true,
-        status: 'active',
-        is_default: false,
-      })
-      .select()
-      .single();
+    const { data: agent, error } = await adminInsertAndSelect('agents', {
+      account_id: user.id,
+      name: body.name.trim(),
+      description: body.description || null,
+      ai_provider: body.ai_provider || 'openai',
+      ai_model: body.ai_model || 'gpt-4',
+      system_prompt: body.system_prompt || 'You are a helpful AI assistant.',
+      context_window: body.context_window || 60,
+      enable_function_calling: body.enable_function_calling ?? true,
+      status: 'active',
+      is_default: false,
+    });
 
     if (error) {
       console.error('Error creating agent:', error);
