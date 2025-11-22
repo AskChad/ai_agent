@@ -165,6 +165,37 @@ function AgentsPageContent() {
     }
   };
 
+  const [resyncingAgentId, setResyncingAgentId] = useState<string | null>(null);
+
+  const handleResyncGhl = async (agentId: string) => {
+    setResyncingAgentId(agentId);
+    try {
+      // Refresh the token by calling the resync endpoint
+      const response = await fetch(`/api/ghl/resync?agentId=${agentId}`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Reload the status to show updated info
+          await loadGhlStatus(agentId);
+          alert('GHL connection resynced successfully!');
+        } else {
+          alert(data.error || 'Failed to resync GHL connection');
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to resync GHL connection');
+      }
+    } catch (error) {
+      console.error('Error resyncing GHL:', error);
+      alert('Failed to resync GHL connection');
+    } finally {
+      setResyncingAgentId(null);
+    }
+  };
+
   const handleCreateAgent = async () => {
     try {
       const response = await fetch('/api/agents', {
@@ -359,13 +390,23 @@ function AgentsPageContent() {
                       <p className="text-xs text-gray-600">
                         {ghlStatuses[agent.id]?.userType === 'Company' ? 'Company' : 'Location'}: {ghlStatuses[agent.id]?.locationId?.slice(0, 8)}...
                       </p>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleDisconnectGhl(agent.id)}
-                      >
-                        Disconnect
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleDisconnectGhl(agent.id)}
+                        >
+                          Disconnect GHL
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleResyncGhl(agent.id)}
+                          disabled={resyncingAgentId === agent.id}
+                        >
+                          {resyncingAgentId === agent.id ? 'Resyncing...' : 'Resync Connection'}
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <Button
