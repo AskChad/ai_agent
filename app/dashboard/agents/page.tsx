@@ -432,19 +432,7 @@ function AgentsPageContent() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => {
-                      setEditingAgent(agent);
-                      setFormData({
-                        name: agent.name,
-                        description: agent.description || '',
-                        ai_provider: agent.ai_provider,
-                        ai_model: agent.ai_model,
-                        system_prompt: agent.system_prompt,
-                        context_window: agent.context_window,
-                        enable_function_calling: agent.enable_function_calling
-                      });
-                      setShowCreateModal(true);
-                    }}
+                    onClick={() => window.location.href = `/dashboard/agents/${agent.id}/edit`}
                   >
                     Edit
                   </Button>
