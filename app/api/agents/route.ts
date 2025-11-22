@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           is_active: true,
           max_agents: 10,
           is_platform_admin: false,
-        });
+        } as Record<string, unknown>);
 
       if (accountError) {
         console.error('Error creating account:', accountError);
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the agent using admin client to bypass RLS
-    const adminClient = getAdminClient();
-    const { data: agent, error } = await adminClient
+    const adminClientForAgent = getAdminClient();
+    const { data: agent, error } = await adminClientForAgent
       .from('agents')
       .insert({
         account_id: user.id,
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         enable_function_calling: body.enable_function_calling ?? true,
         status: 'active',
         is_default: false,
-      })
+      } as Record<string, unknown>)
       .select()
       .single();
 
