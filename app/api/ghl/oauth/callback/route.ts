@@ -36,18 +36,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Parse state to get userId
+    // Parse state to get userId and agentId
     let userId: string | null = null;
+    let agentId: string | null = null;
     if (state) {
       try {
         const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
         userId = stateData.userId;
+        agentId = stateData.agentId;
 
         // Check state timestamp (prevent replay attacks)
         const stateAge = Date.now() - stateData.timestamp;
         if (stateAge > 10 * 60 * 1000) { // 10 minutes
           return NextResponse.redirect(
-            `${appUrl}/dashboard/settings?ghl_error=expired_state`
+            `${appUrl}/dashboard/agents?ghl_error=expired_state`
           );
         }
       } catch {
@@ -57,7 +59,13 @@ export async function GET(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.redirect(
-        `${appUrl}/dashboard/settings?ghl_error=invalid_state`
+        `${appUrl}/dashboard/agents?ghl_error=invalid_state`
+      );
+    }
+
+    if (!agentId) {
+      return NextResponse.redirect(
+        `${appUrl}/dashboard/agents?ghl_error=missing_agent_id`
       );
     }
 
@@ -118,14 +126,15 @@ export async function GET(request: NextRequest) {
       companyId: tokenData.companyId,
     });
 
-    // Store the session in database with user association
-    const sessionId = tokenData.locationId || tokenData.companyId || userId;
+    // Store the session in database with agent association
+    const locationId = tokenData.locationId || tokenData.companyId || agentId;
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
     const { error: sessionError } = await supabase
       .from('ghl_sessions')
       .upsert({
-        location_id: sessionId,
+        agent_id: agentId,
+        location_id: locationId,
         company_id: tokenData.companyId || null,
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
@@ -135,25 +144,25 @@ export async function GET(request: NextRequest) {
         user_type: tokenData.userType,
         user_id: userId,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'location_id' });
+      }, { onConflict: 'agent_id' });
 
     if (sessionError) {
       console.error('Error storing GHL session:', sessionError);
       return NextResponse.redirect(
-        `${appUrl}/dashboard/settings?ghl_error=${encodeURIComponent('Failed to store session: ' + sessionError.message)}`
+        `${appUrl}/dashboard/agents?ghl_error=${encodeURIComponent('Failed to store session: ' + sessionError.message)}`
       );
     }
 
-    // Handle company-level vs location-level tokens
+    // Handle company-level vs location-level tokens - redirect to agents page
     if (tokenData.userType === 'Company') {
       // Company token - redirect with company info
       return NextResponse.redirect(
-        `${appUrl}/dashboard/settings?ghl_connected=true&type=company&companyId=${tokenData.companyId}`
+        `${appUrl}/dashboard/agents?ghl_connected=true&agentId=${agentId}&type=company&companyId=${tokenData.companyId}`
       );
     } else {
       // Location token - redirect with location info
       return NextResponse.redirect(
-        `${appUrl}/dashboard/settings?ghl_connected=true&locationId=${tokenData.locationId || sessionId}`
+        `${appUrl}/dashboard/agents?ghl_connected=true&agentId=${agentId}&locationId=${locationId}`
       );
     }
 

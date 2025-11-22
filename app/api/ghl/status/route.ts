@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { ghlSessionStorage } from '@/lib/ghl/supabase-session-storage';
 
 /**
- * Check GoHighLevel connection status for current user
- * Checks both legacy ghl_oauth_tokens table and new ghl_sessions table
+ * Check GoHighLevel connection status for a specific agent
+ * Query params:
+ * GET /api/ghl/status?agentId=xxx
  */
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -19,63 +19,70 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // First check the new ghl_sessions table (SDK-based)
-    const { data: sessions, error: sessionsError } = await supabase
-      .from('ghl_sessions')
-      .select('location_id, company_id, expires_at, scope, user_type')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Get agentId from query params
+    const agentId = request.nextUrl.searchParams.get('agentId');
 
-    if (!sessionsError && sessions) {
-      const expiresAt = new Date(sessions.expires_at);
-      const isExpired = expiresAt.getTime() < Date.now();
-
-      return NextResponse.json({
-        connected: !isExpired,
-        locationId: sessions.location_id,
-        expiresAt: sessions.expires_at,
-        scopes: sessions.scope?.split(' ') || [],
-        userType: sessions.user_type,
-        source: 'sdk',
-      });
+    if (!agentId) {
+      return NextResponse.json(
+        { error: 'agentId is required' },
+        { status: 400 }
+      );
     }
 
-    // Fall back to legacy ghl_oauth_tokens table
-    const { data: tokens, error: tokensError } = await supabase
-      .from('ghl_oauth_tokens')
-      .select('location_id, expires_at, scope')
-      .eq('account_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
+    // Verify the agent belongs to this user
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id, name')
+      .eq('id', agentId)
+      .eq('user_id', user.id)
       .maybeSingle();
 
-    if (tokensError) {
-      console.error('Error checking GHL tokens:', tokensError);
+    if (agentError || !agent) {
+      return NextResponse.json(
+        { error: 'Agent not found or access denied' },
+        { status: 404 }
+      );
+    }
+
+    // Check ghl_sessions table for this agent
+    const { data: session, error: sessionError } = await supabase
+      .from('ghl_sessions')
+      .select('location_id, company_id, expires_at, scope, user_type')
+      .eq('agent_id', agentId)
+      .maybeSingle();
+
+    if (sessionError) {
+      console.error('Error checking GHL session:', sessionError);
       return NextResponse.json({
         connected: false,
+        agentId,
+        agentName: agent.name,
         locationId: null,
       });
     }
 
-    if (!tokens) {
+    if (!session) {
       return NextResponse.json({
         connected: false,
+        agentId,
+        agentName: agent.name,
         locationId: null,
       });
     }
 
     // Check if token is expired
-    const expiresAt = new Date(tokens.expires_at);
+    const expiresAt = new Date(session.expires_at);
     const isExpired = expiresAt.getTime() < Date.now();
 
     return NextResponse.json({
       connected: !isExpired,
-      locationId: tokens.location_id,
-      expiresAt: tokens.expires_at,
-      scopes: tokens.scope?.split(' ') || [],
-      source: 'legacy',
+      agentId,
+      agentName: agent.name,
+      locationId: session.location_id,
+      companyId: session.company_id,
+      expiresAt: session.expires_at,
+      scopes: session.scope?.split(' ') || [],
+      userType: session.user_type,
     });
 
   } catch (error) {

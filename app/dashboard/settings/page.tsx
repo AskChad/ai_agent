@@ -111,6 +111,10 @@ export default function SettingsPage() {
   const [savingOauthConfig, setSavingOauthConfig] = useState(false);
   const [showClientSecret, setShowClientSecret] = useState(false);
 
+  // User role state
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<string>('user');
+
   // Account settings state
   const [settings, setSettings] = useState<AccountSettings>({
     context_window_days: 30,
@@ -153,7 +157,21 @@ export default function SettingsPage() {
     loadAccountSettings();
     checkGHLStatus();
     loadOAuthConfig();
+    loadUserRole();
   }, []);
+
+  const loadUserRole = async () => {
+    try {
+      const response = await fetch('/api/user/role');
+      if (response.ok) {
+        const data = await response.json();
+        setUserRole(data.role || 'user');
+        setIsPlatformAdmin(data.isPlatformAdmin || false);
+      }
+    } catch (error) {
+      console.error('Failed to load user role:', error);
+    }
+  };
 
   const loadAccountSettings = async () => {
     try {
@@ -480,9 +498,13 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* OAuth App Configuration */}
+              {/* OAuth App Configuration - Only visible to Platform Admins */}
+              {isPlatformAdmin && (
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h3 className="text-md font-semibold text-gray-900 mb-4">OAuth App Configuration</h3>
+                <div className="mb-2 inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded">
+                  Platform Admin Only
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Configure your GoHighLevel OAuth application credentials. These settings are required
                   for the OAuth connection to work properly.
@@ -659,14 +681,17 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+              )}
 
-              {/* Scope Selector Modal */}
+              {/* Scope Selector Modal - Only for admins */}
+              {isPlatformAdmin && (
               <ScopeSelectorModal
                 isOpen={showScopeSelector}
                 onClose={() => setShowScopeSelector(false)}
                 currentScopes={oauthConfig.scopes}
                 onSave={(scopes) => setOauthConfig({ ...oauthConfig, scopes })}
               />
+              )}
             </div>
           </div>
         );

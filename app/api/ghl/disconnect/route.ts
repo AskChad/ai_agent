@@ -1,15 +1,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { ghlSessionStorage } from '@/lib/ghl/supabase-session-storage';
 
 /**
- * Disconnect GoHighLevel integration
- * Removes session from both legacy and SDK tables
+ * Disconnect GoHighLevel integration for a specific agent
+ * Query params:
+ * DELETE /api/ghl/disconnect?agentId=xxx
  */
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
+export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -19,52 +19,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    let disconnected = false;
+    // Get agentId from query params
+    const agentId = request.nextUrl.searchParams.get('agentId');
 
-    // First try to disconnect from SDK sessions table
-    const { data: sessions } = await supabase
-      .from('ghl_sessions')
-      .select('location_id')
-      .order('created_at', { ascending: false })
-      .limit(1)
+    if (!agentId) {
+      return NextResponse.json(
+        { error: 'agentId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify the agent belongs to this user
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id, name')
+      .eq('id', agentId)
+      .eq('user_id', user.id)
       .maybeSingle();
 
-    if (sessions) {
-      await ghlSessionStorage.delete(sessions.location_id);
-      disconnected = true;
-    }
-
-    // Also try to disconnect from legacy table
-    const { data: legacyTokens } = await supabase
-      .from('ghl_oauth_tokens')
-      .select('location_id')
-      .eq('account_id', user.id)
-      .single();
-
-    if (legacyTokens) {
-      await supabase
-        .from('ghl_oauth_tokens')
-        .delete()
-        .eq('account_id', user.id);
-      disconnected = true;
-    }
-
-    if (!disconnected) {
+    if (agentError || !agent) {
       return NextResponse.json(
-        { error: 'No GHL connection found' },
+        { error: 'Agent not found or access denied' },
         { status: 404 }
       );
     }
 
-    // Clear GHL location ID from account
-    await supabase
-      .from('accounts')
-      .update({ ghl_location_id: null })
-      .eq('id', user.id);
+    // Delete the GHL session for this agent
+    const { error: deleteError } = await supabase
+      .from('ghl_sessions')
+      .delete()
+      .eq('agent_id', agentId);
+
+    if (deleteError) {
+      console.error('Error deleting GHL session:', deleteError);
+      return NextResponse.json(
+        { error: 'Failed to disconnect from GHL' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Successfully disconnected from GoHighLevel',
+      message: `Successfully disconnected agent "${agent.name}" from GoHighLevel`,
+      agentId,
     });
 
   } catch (error) {
@@ -74,4 +71,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Also support POST for backwards compatibility
+export async function POST(request: NextRequest) {
+  return DELETE(request);
 }

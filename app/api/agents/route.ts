@@ -1,56 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Agent, CreateAgentRequest } from '@/types/agent';
-import { db } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// GET /api/agents - List all agents for the authenticated account
-export async function GET(request: NextRequest) {
+// GET /api/agents - List all agents for the authenticated user
+export async function GET() {
   try {
-    // Try Supabase auth first (for browser requests)
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    let accountId: string | null = null;
-
-    if (user) {
-      // Authenticated via Supabase session
-      accountId = user.id;
-    } else {
-      // Fall back to x-account-id header (for server-side/direct API calls)
-      accountId = request.headers.get('x-account-id');
-    }
-
-    if (!accountId) {
+    if (userError || !user) {
       return NextResponse.json({
         success: false,
         error: 'Not authenticated'
       }, { status: 401 });
     }
 
-    const client = await db.getClient();
-    try {
-      const result = await client.query<Agent>(
-        `SELECT * FROM agents
-         WHERE account_id = $1
-         ORDER BY is_default DESC, created_at DESC`,
-        [accountId]
-      );
+    const { data: agents, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false });
 
+    if (error) {
+      console.error('Error fetching agents:', error);
       return NextResponse.json({
-        success: true,
-        agents: result.rows
-      });
-    } finally {
-      client.release();
+        success: false,
+        error: error.message
+      }, { status: 500 });
     }
-  } catch (error: any) {
+
+    return NextResponse.json({
+      success: true,
+      agents: agents || []
+    });
+  } catch (error: unknown) {
     console.error('Error fetching agents:', error);
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
@@ -58,97 +48,70 @@ export async function GET(request: NextRequest) {
 // POST /api/agents - Create a new agent
 export async function POST(request: NextRequest) {
   try {
-    // Try Supabase auth first (for browser requests)
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    let accountId: string | null = null;
-
-    if (user) {
-      // Authenticated via Supabase session
-      accountId = user.id;
-    } else {
-      // Fall back to x-account-id header (for server-side/direct API calls)
-      accountId = request.headers.get('x-account-id');
-    }
-
-    if (!accountId) {
+    if (userError || !user) {
       return NextResponse.json({
         success: false,
         error: 'Not authenticated'
       }, { status: 401 });
     }
 
-    const body: CreateAgentRequest = await request.json();
+    const body = await request.json();
 
     // Validate required fields
     if (!body.name || body.name.trim().length === 0) {
-      return NextResponse.json({ error: 'Agent name is required' }, { status: 400 });
-    }
-
-    const client = await db.getClient();
-    try {
-      // Check agent limit
-      const limitCheck = await client.query(
-        `SELECT
-          acc.max_agents,
-          COUNT(a.id) FILTER (WHERE a.status != 'archived') as active_agents
-         FROM accounts acc
-         LEFT JOIN agents a ON a.account_id = acc.id
-         WHERE acc.id = $1
-         GROUP BY acc.max_agents`,
-        [accountId]
-      );
-
-      if (limitCheck.rows.length > 0) {
-        const { max_agents, active_agents } = limitCheck.rows[0];
-        if (max_agents !== 0 && parseInt(active_agents) >= max_agents) {
-          return NextResponse.json({
-            error: `Agent limit reached. Maximum allowed: ${max_agents}`
-          }, { status: 403 });
-        }
-      }
-
-      // Create the agent
-      const result = await client.query<Agent>(
-        `INSERT INTO agents (
-          account_id, name, description, ai_provider, ai_model,
-          system_prompt, context_window, enable_function_calling
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING *`,
-        [
-          accountId,
-          body.name.trim(),
-          body.description || null,
-          body.ai_provider || 'openai',
-          body.ai_model || 'gpt-4',
-          body.system_prompt || 'You are a helpful AI assistant.',
-          body.context_window || 60,
-          body.enable_function_calling ?? true
-        ]
-      );
-
-      return NextResponse.json({
-        success: true,
-        agent: result.rows[0]
-      }, { status: 201 });
-    } finally {
-      client.release();
-    }
-  } catch (error: any) {
-    console.error('Error creating agent:', error);
-
-    // Handle unique constraint violation
-    if (error.code === '23505') {
       return NextResponse.json({
         success: false,
-        error: 'An agent with this name already exists'
-      }, { status: 409 });
+        error: 'Agent name is required'
+      }, { status: 400 });
+    }
+
+    // Create the agent
+    const { data: agent, error } = await supabase
+      .from('agents')
+      .insert({
+        user_id: user.id,
+        name: body.name.trim(),
+        description: body.description || null,
+        ai_provider: body.ai_provider || 'openai',
+        ai_model: body.ai_model || 'gpt-4',
+        system_prompt: body.system_prompt || 'You are a helpful AI assistant.',
+        context_window: body.context_window || 60,
+        enable_function_calling: body.enable_function_calling ?? true,
+        status: 'active',
+        is_default: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating agent:', error);
+
+      // Handle unique constraint violation
+      if (error.code === '23505') {
+        return NextResponse.json({
+          success: false,
+          error: 'An agent with this name already exists'
+        }, { status: 409 });
+      }
+
+      return NextResponse.json({
+        success: false,
+        error: error.message
+      }, { status: 500 });
     }
 
     return NextResponse.json({
+      success: true,
+      agent
+    }, { status: 201 });
+  } catch (error: unknown) {
+    console.error('Error creating agent:', error);
+    return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

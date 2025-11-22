@@ -1,11 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Modal } from '@/components/ui';
 import { Input, Textarea, Select } from '@/components/ui';
 import { Agent, CreateAgentRequest } from '@/types/agent';
+
+// GHL connection status type
+interface GHLConnectionStatus {
+  connected: boolean;
+  locationId?: string;
+  companyId?: string;
+  expiresAt?: string;
+  userType?: string;
+}
 
 // Model configurations for each provider (2025 latest models)
 const AI_MODELS = {
@@ -33,11 +43,14 @@ const AI_MODELS = {
 };
 
 export default function AgentsPage() {
+  const searchParams = useSearchParams();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [agentLimit, setAgentLimit] = useState({ current: 0, max: 0 });
+  const [ghlStatuses, setGhlStatuses] = useState<Record<string, GHLConnectionStatus>>({});
+  const [connectingAgentId, setConnectingAgentId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<CreateAgentRequest>({
@@ -52,7 +65,20 @@ export default function AgentsPage() {
 
   useEffect(() => {
     loadAgents();
-  }, []);
+
+    // Check for GHL connection success/error from callback
+    const ghlConnected = searchParams.get('ghl_connected');
+    const ghlError = searchParams.get('ghl_error');
+    const agentId = searchParams.get('agentId');
+
+    if (ghlConnected === 'true' && agentId) {
+      // Refresh GHL status for this agent
+      loadGhlStatus(agentId);
+    }
+    if (ghlError) {
+      alert(`GHL Connection Error: ${ghlError}`);
+    }
+  }, [searchParams]);
 
   const loadAgents = async () => {
     try {
@@ -64,11 +90,78 @@ export default function AgentsPage() {
           current: data.agents.filter((a: Agent) => a.status === 'active').length,
           max: 0 // TODO: Get from account info
         });
+        // Load GHL status for each agent
+        data.agents.forEach((agent: Agent) => {
+          loadGhlStatus(agent.id);
+        });
       }
     } catch (error) {
       console.error('Error loading agents:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGhlStatus = async (agentId: string) => {
+    try {
+      const response = await fetch(`/api/ghl/status?agentId=${agentId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setGhlStatuses(prev => ({
+          ...prev,
+          [agentId]: {
+            connected: data.connected,
+            locationId: data.locationId,
+            companyId: data.companyId,
+            expiresAt: data.expiresAt,
+            userType: data.userType,
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading GHL status:', error);
+    }
+  };
+
+  const handleConnectGhl = async (agentId: string) => {
+    setConnectingAgentId(agentId);
+    try {
+      const response = await fetch(`/api/ghl/oauth/authorize?agentId=${agentId}`);
+      const data = await response.json();
+
+      if (data.success && data.authUrl) {
+        // Redirect to GHL OAuth
+        window.location.href = data.authUrl;
+      } else {
+        alert(data.error || 'Failed to initiate GHL connection');
+      }
+    } catch (error) {
+      console.error('Error connecting to GHL:', error);
+      alert('Failed to connect to GHL');
+    } finally {
+      setConnectingAgentId(null);
+    }
+  };
+
+  const handleDisconnectGhl = async (agentId: string) => {
+    if (!confirm('Are you sure you want to disconnect this agent from GoHighLevel?')) return;
+
+    try {
+      const response = await fetch(`/api/ghl/disconnect?agentId=${agentId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setGhlStatuses(prev => ({
+          ...prev,
+          [agentId]: { connected: false }
+        }));
+      } else {
+        alert('Failed to disconnect from GHL');
+      }
+    } catch (error) {
+      console.error('Error disconnecting from GHL:', error);
+      alert('Failed to disconnect from GHL');
     }
   };
 
@@ -253,6 +346,38 @@ export default function AgentsPage() {
                   <p className="text-xs text-gray-900 font-medium">System Prompt</p>
                   <p className="text-sm text-gray-900 line-clamp-2">{agent.system_prompt}</p>
                 </div>
+
+                {/* GHL Connection Status */}
+                <div className="border-t pt-3 mt-3">
+                  <p className="text-xs text-gray-900 font-medium mb-2">GoHighLevel Connection</p>
+                  {ghlStatuses[agent.id]?.connected ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="text-sm text-green-700">Connected</span>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        {ghlStatuses[agent.id]?.userType === 'Company' ? 'Company' : 'Location'}: {ghlStatuses[agent.id]?.locationId?.slice(0, 8)}...
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleDisconnectGhl(agent.id)}
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => handleConnectGhl(agent.id)}
+                      disabled={connectingAgentId === agent.id}
+                    >
+                      {connectingAgentId === agent.id ? 'Connecting...' : 'Connect to GHL'}
+                    </Button>
+                  )}
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   {!agent.is_default && agent.status === 'active' && (
                     <Button
