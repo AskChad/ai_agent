@@ -35,16 +35,22 @@ export function getAdminClient() {
 
 /**
  * Insert a record into a table using the admin client (bypasses RLS)
+ * Uses type assertion to bypass the typed Supabase client
  */
-export async function adminInsert(table: string, data: Record<string, unknown>) {
+export async function adminInsert(table: string, data: Record<string, unknown>): Promise<{ error: { message: string; code?: string } | null }> {
   const client = getAdminClient()
-  return client.from(table).insert(data)
+  // Cast to bypass strict typing from generated types
+  const result = await (client.from(table) as ReturnType<typeof client.from>).insert(data as never)
+  return { error: result.error }
 }
 
 /**
  * Insert a record and return the inserted data
+ * Uses type assertion to bypass the typed Supabase client
  */
-export async function adminInsertAndSelect(table: string, data: Record<string, unknown>) {
+export async function adminInsertAndSelect(table: string, data: Record<string, unknown>): Promise<{ data: Record<string, unknown> | null; error: { message: string; code?: string } | null }> {
   const client = getAdminClient()
-  return client.from(table).insert(data).select().single()
+  // Cast to bypass strict typing from generated types
+  const result = await (client.from(table) as ReturnType<typeof client.from>).insert(data as never).select().single()
+  return { data: result.data as Record<string, unknown> | null, error: result.error }
 }
