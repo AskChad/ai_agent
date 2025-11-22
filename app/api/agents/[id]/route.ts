@@ -25,7 +25,7 @@ export async function GET(
       .from('agents')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('account_id', user.id)
       .maybeSingle();
 
     if (error) {
@@ -103,7 +103,7 @@ export async function PATCH(
       await supabase
         .from('agents')
         .update({ is_default: false })
-        .eq('user_id', user.id)
+        .eq('account_id', user.id)
         .neq('id', id);
     }
 
@@ -111,7 +111,7 @@ export async function PATCH(
       .from('agents')
       .update(updates)
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('account_id', user.id)
       .select()
       .single();
 
@@ -167,7 +167,7 @@ export async function DELETE(
       .from('agents')
       .select('is_default')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('account_id', user.id)
       .maybeSingle();
 
     if (fetchError || !agent) {
@@ -182,7 +182,7 @@ export async function DELETE(
       const { count } = await supabase
         .from('agents')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+        .eq('account_id', user.id)
         .neq('status', 'archived');
 
       if (count && count <= 1) {
@@ -201,7 +201,7 @@ export async function DELETE(
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('account_id', user.id);
 
     if (deleteError) {
       console.error('Error deleting agent:', deleteError);
@@ -216,7 +216,7 @@ export async function DELETE(
       const { data: newDefault } = await supabase
         .from('agents')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('account_id', user.id)
         .eq('status', 'active')
         .order('created_at', { ascending: true })
         .limit(1)

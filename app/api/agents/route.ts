@@ -21,7 +21,7 @@ export async function GET() {
     const { data: agents, error } = await supabase
       .from('agents')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('account_id', user.id)
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Create the agent using admin client to bypass RLS
     const { data: agent, error } = await adminInsertAndSelect('agents', {
-      user_id: user.id,
+      account_id: user.id,
       name: body.name.trim(),
       description: body.description || null,
       ai_provider: body.ai_provider || 'openai',
