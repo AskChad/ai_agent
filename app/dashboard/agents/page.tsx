@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
@@ -42,7 +42,7 @@ const AI_MODELS = {
   ]
 };
 
-export default function AgentsPage() {
+function AgentsPageContent() {
   const searchParams = useSearchParams();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -552,5 +552,14 @@ export default function AgentsPage() {
         </Modal>
       )}
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function AgentsPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <AgentsPageContent />
+    </Suspense>
   );
 }
