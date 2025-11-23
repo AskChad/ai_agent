@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input, Textarea, Select } from '@/components/ui';
@@ -32,12 +32,9 @@ const AI_MODELS = {
   ]
 };
 
-interface EditAgentPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function EditAgentPage({ params }: EditAgentPageProps) {
-  const { id } = use(params);
+function EditAgentContent() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -284,5 +281,18 @@ export default function EditAgentPage({ params }: EditAgentPageProps) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Default export with Suspense wrapper
+export default function EditAgentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-900">Loading...</div>
+      </div>
+    }>
+      <EditAgentContent />
+    </Suspense>
   );
 }
