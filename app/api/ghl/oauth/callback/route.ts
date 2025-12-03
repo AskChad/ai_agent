@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GHL OAuth callback handler
- * Exchanges code for tokens using config from database
- * Tokens are stored via the Supabase session storage adapter
+ * Exchanges code for tokens using per-agent config or shared config
+ * Supports multiple agents sharing the same API key (same location)
  */
 export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
@@ -36,14 +36,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Parse state to get userId and agentId
+    // Parse state to get userId, agentId, and config info
     let userId: string | null = null;
     let agentId: string | null = null;
+    let agentGhlConfigId: string | null = null;
+    let configType: string = 'none';
+
     if (state) {
       try {
         const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
         userId = stateData.userId;
         agentId = stateData.agentId;
+        agentGhlConfigId = stateData.agentGhlConfigId;
+        configType = stateData.configType || 'none';
 
         // Check state timestamp (prevent replay attacks)
         const stateAge = Date.now() - stateData.timestamp;
@@ -75,19 +80,74 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Load OAuth config from database (first try user's config, then platform config)
+    // Load OAuth config based on config type from state
     let config = null;
-    const { data: userConfig } = await supabase
-      .from('oauth_app_configs')
-      .select('*')
-      .eq('provider', 'ghl')
-      .eq('created_by', userId)
-      .eq('is_active', true)
-      .maybeSingle();
+    const encryptionService = new EncryptionService();
 
-    config = userConfig;
+    // Priority 1: Per-agent private integration config
+    if (agentGhlConfigId) {
+      const { data: agentConfig } = await supabase
+        .from('agent_ghl_configs')
+        .select(`
+          id,
+          client_id,
+          client_secret,
+          redirect_uri,
+          scopes,
+          shared_config_id
+        `)
+        .eq('id', agentGhlConfigId)
+        .eq('is_active', true)
+        .maybeSingle();
 
-    // If no user config, try platform config (from platform admin)
+      if (agentConfig) {
+        if (agentConfig.client_id && agentConfig.client_secret) {
+          // Agent has its own private integration
+          config = {
+            client_id: agentConfig.client_id,
+            client_secret: encryptionService.decrypt(agentConfig.client_secret),
+            redirect_uri: agentConfig.redirect_uri,
+          };
+        } else if (agentConfig.shared_config_id) {
+          // Agent uses a shared config
+          const { data: sharedConfig } = await supabase
+            .from('oauth_app_configs')
+            .select('*')
+            .eq('id', agentConfig.shared_config_id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (sharedConfig) {
+            config = {
+              client_id: sharedConfig.client_id,
+              client_secret: encryptionService.decrypt(sharedConfig.client_secret),
+              redirect_uri: sharedConfig.redirect_uri,
+            };
+          }
+        }
+      }
+    }
+
+    // Priority 2: Fall back to user's oauth_app_configs
+    if (!config) {
+      const { data: userConfig } = await supabase
+        .from('oauth_app_configs')
+        .select('*')
+        .eq('provider', 'ghl')
+        .eq('created_by', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (userConfig) {
+        config = {
+          client_id: userConfig.client_id,
+          client_secret: encryptionService.decrypt(userConfig.client_secret),
+          redirect_uri: userConfig.redirect_uri,
+        };
+      }
+    }
+
+    // Priority 3: Fall back to platform-wide config
     if (!config) {
       const { data: platformConfig } = await supabase
         .from('oauth_app_configs')
@@ -96,7 +156,14 @@ export async function GET(request: NextRequest) {
         .eq('is_active', true)
         .limit(1)
         .maybeSingle();
-      config = platformConfig;
+
+      if (platformConfig) {
+        config = {
+          client_id: platformConfig.client_id,
+          client_secret: encryptionService.decrypt(platformConfig.client_secret),
+          redirect_uri: platformConfig.redirect_uri,
+        };
+      }
     }
 
     if (!config) {
@@ -106,10 +173,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Decrypt client secret
-    const encryptionService = new EncryptionService();
-    const clientSecret = encryptionService.decrypt(config.client_secret);
-
     // Exchange code for tokens
     const response = await fetch(`${GHL_API_BASE}/oauth/token`, {
       method: 'POST',
@@ -118,7 +181,7 @@ export async function GET(request: NextRequest) {
       },
       body: new URLSearchParams({
         client_id: config.client_id,
-        client_secret: clientSecret,
+        client_secret: config.client_secret,
         grant_type: 'authorization_code',
         code,
         redirect_uri: config.redirect_uri,
@@ -139,12 +202,15 @@ export async function GET(request: NextRequest) {
       userType: tokenData.userType,
       locationId: tokenData.locationId,
       companyId: tokenData.companyId,
+      configType: configType,
     });
 
     // Store the session in database with agent association
+    // NOTE: Multiple agents can now share the same location_id (same API key)
     const locationId = tokenData.locationId || tokenData.companyId || agentId;
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
+    // Use agent_id + location_id as the unique constraint (allows shared keys)
     const { error: sessionError } = await supabase
       .from('ghl_sessions')
       .upsert({
@@ -158,8 +224,9 @@ export async function GET(request: NextRequest) {
         scope: tokenData.scope,
         user_type: tokenData.userType,
         user_id: userId,
+        agent_ghl_config_id: agentGhlConfigId,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'agent_id' });
+      }, { onConflict: 'agent_id,location_id' });
 
     if (sessionError) {
       console.error('Error storing GHL session:', sessionError);

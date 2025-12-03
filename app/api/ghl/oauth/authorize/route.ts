@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { EncryptionService } from '@/lib/services/encryption.service';
 
@@ -7,7 +7,7 @@ const DEFAULT_SCOPES = 'conversations.readonly conversations.write conversations
 
 /**
  * Initiate GHL OAuth flow for a specific agent
- * Loads OAuth configuration from database
+ * Uses per-agent private integration config if available, otherwise falls back to shared config
  *
  * Query params:
  * GET /api/ghl/oauth/authorize?agentId=xxx
@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
 async function handleOAuthAuthorize(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminSupabase = await createAdminClient();
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -59,7 +60,7 @@ async function handleOAuthAuthorize(request: NextRequest) {
     // Verify the agent belongs to this user
     const { data: agent, error: agentError } = await supabase
       .from('agents')
-      .select('id, name')
+      .select('id, name, account_id')
       .eq('id', agentId)
       .eq('account_id', user.id)
       .maybeSingle();
@@ -71,43 +72,119 @@ async function handleOAuthAuthorize(request: NextRequest) {
       );
     }
 
-    // Load OAuth config from database (platform-wide config)
-    // First try user's config, then fall back to any active config
+    // Priority 1: Check for per-agent private integration config
     let config = null;
-    const { data: userConfig } = await supabase
-      .from('oauth_app_configs')
-      .select('*')
-      .eq('provider', 'ghl')
-      .eq('created_by', user.id)
+    let configType = 'none';
+    let agentGhlConfigId = null;
+
+    const { data: agentConfig } = await adminSupabase
+      .from('agent_ghl_configs')
+      .select(`
+        id,
+        client_id,
+        client_secret,
+        redirect_uri,
+        scopes,
+        shared_config_id,
+        config_name
+      `)
+      .eq('agent_id', agentId)
       .eq('is_active', true)
       .maybeSingle();
 
-    config = userConfig;
+    if (agentConfig) {
+      agentGhlConfigId = agentConfig.id;
 
-    // If no user config, try platform config (from platform admin)
+      if (agentConfig.client_id && agentConfig.client_secret) {
+        // Agent has its own private integration credentials
+        const encryptionService = new EncryptionService();
+        config = {
+          client_id: agentConfig.client_id,
+          client_secret: encryptionService.decrypt(agentConfig.client_secret),
+          redirect_uri: agentConfig.redirect_uri,
+          scopes: agentConfig.scopes,
+        };
+        configType = 'private';
+      } else if (agentConfig.shared_config_id) {
+        // Agent uses a shared config
+        const { data: sharedConfig } = await adminSupabase
+          .from('oauth_app_configs')
+          .select('*')
+          .eq('id', agentConfig.shared_config_id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (sharedConfig) {
+          const encryptionService = new EncryptionService();
+          config = {
+            client_id: sharedConfig.client_id,
+            client_secret: encryptionService.decrypt(sharedConfig.client_secret),
+            redirect_uri: sharedConfig.redirect_uri,
+            scopes: sharedConfig.scopes,
+          };
+          configType = 'shared';
+        }
+      }
+    }
+
+    // Priority 2: Fall back to user's oauth_app_configs
     if (!config) {
-      const { data: platformConfig } = await supabase
+      const { data: userConfig } = await adminSupabase
+        .from('oauth_app_configs')
+        .select('*')
+        .eq('provider', 'ghl')
+        .eq('created_by', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (userConfig) {
+        const encryptionService = new EncryptionService();
+        config = {
+          client_id: userConfig.client_id,
+          client_secret: encryptionService.decrypt(userConfig.client_secret),
+          redirect_uri: userConfig.redirect_uri,
+          scopes: userConfig.scopes,
+        };
+        configType = 'user_default';
+      }
+    }
+
+    // Priority 3: Fall back to platform-wide config
+    if (!config) {
+      const { data: platformConfig } = await adminSupabase
         .from('oauth_app_configs')
         .select('*')
         .eq('provider', 'ghl')
         .eq('is_active', true)
         .limit(1)
         .maybeSingle();
-      config = platformConfig;
+
+      if (platformConfig) {
+        const encryptionService = new EncryptionService();
+        config = {
+          client_id: platformConfig.client_id,
+          client_secret: encryptionService.decrypt(platformConfig.client_secret),
+          redirect_uri: platformConfig.redirect_uri,
+          scopes: platformConfig.scopes,
+        };
+        configType = 'platform';
+      }
     }
 
     // Check if GHL OAuth is configured
     if (!config || !config.client_id) {
       return NextResponse.json(
-        { error: 'GHL OAuth not configured. Please ask your platform administrator to configure GHL app credentials.' },
+        { error: 'GHL OAuth not configured. Please configure a private integration for this agent or ask your platform administrator to set up GHL app credentials.' },
         { status: 400 }
       );
     }
 
-    // Generate state parameter for CSRF protection - include agentId
+    // Generate state parameter for CSRF protection - include agentId and config info
     const state = Buffer.from(JSON.stringify({
       userId: user.id,
       agentId: agentId,
+      agentGhlConfigId: agentGhlConfigId,
+      configType: configType,
       timestamp: Date.now(),
     })).toString('base64');
 
@@ -130,6 +207,7 @@ async function handleOAuthAuthorize(request: NextRequest) {
       scopes,
       agentId,
       agentName: agent.name,
+      configType,
     });
 
   } catch (error) {
